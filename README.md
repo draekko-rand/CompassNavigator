@@ -6,7 +6,7 @@ Android based app with auto declination adjustments using GPS location.
 
 Declination information calculated using the latest 2019 WMM data available from [https://www.ngdc.noaa.gov/geomag/WMM/DoDWMM.shtml](https://www.ngdc.noaa.gov/geomag/WMM/DoDWMM.shtml). 
 
-Precompiled donation version available on the Google Play store at [https://play.google.com/store/apps/details?id=com.draekko.compassnavigator](https://play.google.com/store/apps/details?id=com.draekko.compassnavigator).
+For donations a precompiled version is available for a small fee on the Google Play store at [https://play.google.com/store/apps/details?id=com.draekko.compassnavigator](https://play.google.com/store/apps/details?id=com.draekko.compassnavigator).
 
 ---
 
