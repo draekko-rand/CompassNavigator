@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#444</color>
+    <color name="colorPrimaryDark">#77222222</color>
+    <color name="colorAccent">#222</color>
+    <color name="android_colorPrimary">#7FFF</color>
+    <color name="android_colorPrimaryDark">#7222</color>
+    <color name="android_colorAccent">#C22</color>
+    <color name="white">#FFF</color>
+    <color name="black">#000</color>
+    <color name="red">#F00</color>
+    <color name="blue">#0F0</color>
+    <color name="green">#00F</color>
+    <color name="transparent">#0000</color>
+    <color name="textcolor">#DFFF</color>
+    <color name="nightred">#ffe00000</color>
+    <color name="offwhite">#dfffffff</color>
+    <color name="daytintbtn">#5FFFFFFF</color>
+    <color name="bg">#3F221212</color>
+</resources>

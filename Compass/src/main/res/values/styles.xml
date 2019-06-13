@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="AppTheme" parent="android:Theme.Black.NoTitleBar.Fullscreen">
+    </style>
+
+    <style name="SettingsTheme" parent="Theme.AppCompat">
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/android_colorAccent</item>
+        <item name="android:textColor">@color/textcolor</item>
+        <item name="android:textColorPrimary">@color/textcolor</item>
+        <item name="android:textColorSecondary">@color/textcolor</item>
+        <item name="android:windowBackground">@color/colorPrimary</item>
+        <item name="android:actionBarStyle">@style/SettingsTheme.ActionBar</item>
+    </style>
+
+    <style name="SettingsTheme.ActionBar" parent="@android:style/Widget.Holo.Light.ActionBar">
+        <item name="android:background">@color/colorAccent</item>
+        <item name="android:titleTextStyle">@style/SettingsTheme.ActionBar.Text</item>
+        <item name="android:height">52dp</item>
+    </style>
+
+    <style name="SettingsTheme.ActionBar.Text" parent="@android:style/TextAppearance">
+        <item name="android:textColor">@color/textcolor</item>
+        <item name="android:textSize">28dp</item>
+    </style>
+
+</resources>

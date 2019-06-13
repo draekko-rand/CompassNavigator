@@ -1,0 +1,35 @@
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion 28
+    buildToolsVersion "28.0.3"
+
+    defaultConfig {
+        applicationId "com.draekko.compassnavigator"
+        minSdkVersion 23
+        targetSdkVersion 28
+        versionCode 1
+        versionName "2019.0"
+    }
+
+    buildTypes {
+        release {
+            buildConfigField "boolean", "PRODUCTION", "true"
+        }
+
+        debug {
+            applicationIdSuffix ".debug"
+            buildConfigField "boolean", "PRODUCTION", "false"
+        }
+    }
+
+    dependencies {
+        compileOnly fileTree(include: ['*.jar'], dir: 'syslibs')
+        implementation fileTree(include: ['*.jar'], dir: 'libs')
+        implementation 'com.android.support:appcompat-v7:28.0.0'
+        implementation 'com.android.support:support-v4:28.0.0'
+        implementation 'com.android.support:preference-v7:28.0.0'
+        implementation 'com.google.android.gms:play-services-location:16.0.0'
+    }
+}
+
