@@ -23,19 +23,19 @@ Features:
 
 Screenshots:
 
-![Screenshot 1 Day Compass Rose 1](https://github.com/draekko/CompassNavigator/raw/master/images/screenshot1.png "Screenshot 1 Day Compass Rose 1")
+![Screenshot 1 Day Compass Rose 1](https://raw.githubusercontent.com/draekko-rand/CompassNavigator/master/images/screenshot1.png "Screenshot 1 Day Compass Rose 1"| width=400)
    
    
 
-![Screenshot 2 Day Compass Rose 2](https://github.com/draekko/CompassNavigator/raw/master/images/screenshot2.png "Screenshot 2 Day Compass Rose 2")
+![Screenshot 2 Day Compass Rose 2](https://raw.githubusercontent.com/draekko-rand/CompassNavigator/master/images/screenshot2.png "Screenshot 2 Day Compass Rose 2"| width=400)
    
    
 
-![Screenshot 3 Night Compass Rose 1](https://github.com/draekko/CompassNavigator/raw/master/images/screenshot1.png "Screenshot 1 Night Compass Rose 1")
+![Screenshot 3 Night Compass Rose 1](https://raw.githubusercontent.com/draekko-rand/CompassNavigator/master/images/screenshot3.png "Screenshot 3 Night Compass Rose 1"| width=400)
    
    
 
-![Screenshot 4 Night Compass Rose 2](https://github.com/draekko/CompassNavigator/raw/master/images/screenshot2.png "Screenshot 2 Night Compass Rose 2")
+![Screenshot 4 Night Compass Rose 2](https://raw.githubusercontent.com/draekko-rand/CompassNavigator/master/images/screenshot4.png "Screenshot 4 Night Compass Rose 2" | width=400)
    
    
 
