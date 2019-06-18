@@ -74,6 +74,8 @@ public class CompassView extends View {
     private int mLastW, mLastH;
     private boolean mNight = false;
     private int mRose = 1;
+    private boolean measured = false;
+
 
     Typeface font = Typeface.createFromAsset(getContext().getAssets(), "fonts/notosans.ttf");
     Typeface typeface = Typeface.create(font, Typeface.NORMAL);
@@ -180,20 +182,39 @@ public class CompassView extends View {
         }
         Bitmap bitmap;
         Drawable drawable = mContext.getDrawable(resId);
-        if(drawable.getIntrinsicWidth() <= 0 || drawable.getIntrinsicHeight() <= 0) {
+        int w = drawable.getIntrinsicWidth();
+        int h = drawable.getIntrinsicHeight();
+        if(w <= 0 || h <= 0) {
+            //bitmap = Bitmap.createBitmap((int)newWidth, (int)newHeight, Bitmap.Config.ARGB_8888);
             bitmap = Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888);
         } else {
-            bitmap = Bitmap.createBitmap(drawable.getIntrinsicWidth(), drawable.getIntrinsicHeight(), Bitmap.Config.ARGB_8888);
+            //if (w > newWidth || h > newHeight) {
+            //    w = (int)newWidth;
+            //    h = (int)newHeight;
+            //}
+            try {
+                bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+            } catch (OutOfMemoryError e) {
+                e.printStackTrace();
+                bitmap = Bitmap.createBitmap((int)newWidth, (int)newHeight, Bitmap.Config.ARGB_8888);
+            }
         }
-        Canvas canvas = new Canvas(bitmap);
-        drawable.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
-        drawable.draw(canvas);
-        return Bitmap.createScaledBitmap(bitmap, (int)newWidth, (int)newHeight, true);
+
+        Canvas canvas;
+        try {
+            canvas = new Canvas(bitmap);
+            drawable.setBounds(0, 0, w, h);
+            drawable.draw(canvas);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        final Bitmap returnBitmap = Bitmap.createScaledBitmap(bitmap, (int)newWidth, (int)newHeight, true);
+        return returnBitmap;
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
-        if (mCompassRoseBmp == null || mBezelBmp == null) {
+        if (mCompassRoseBmp == null || mBezelBmp == null || !measured) {
             super.onDraw(canvas);
             return;
         }
@@ -233,11 +254,19 @@ public class CompassView extends View {
         if (mNight) {
             mCompassRosePaint.setAlpha(200);
         }
-        canvas.drawBitmap(mCompassRoseBmp, mMatrix2, mCompassRosePaint);
+        try {
+            canvas.drawBitmap(mCompassRoseBmp, mMatrix2, mCompassRosePaint);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
         /* DRAW BEZEL & ARROW */
-        canvas.drawBitmap(mArrowBmp, mMatrix1, mCompassRosePaint);
-        canvas.drawBitmap(mBezelBmp, mMatrix3, mCompassRosePaint);
+        try {
+            canvas.drawBitmap(mArrowBmp, mMatrix1, mCompassRosePaint);
+            canvas.drawBitmap(mBezelBmp, mMatrix3, mCompassRosePaint);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
         super.onDraw(canvas);
     }
@@ -374,10 +403,10 @@ public class CompassView extends View {
         /* COMPASS ROSE */
         mCompassRoseBmp = decodeBitmap(mCompassRoseId, width, height);
 
-        int i = mCompassRoseBmp.getWidth();
-        int j = mCompassRoseBmp.getHeight();
-        mNeedlesCenterX = ((float) i) / 2.0f;
-        mNeedlesCenterY = ((float) j) / 2.0f;
+        //int i = mCompassRoseBmp.getWidth();
+        //int j = mCompassRoseBmp.getHeight();
+        mNeedlesCenterX = ((float) width) / 2.0f;
+        mNeedlesCenterY = ((float) height) / 2.0f;
 
         mLastW = width;
         mLastH = height;
@@ -391,6 +420,7 @@ public class CompassView extends View {
 
     @Override
     public void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        measured = true;
         mWidth = MeasureSpec.getSize(widthMeasureSpec);
         mHeight = MeasureSpec.getSize(heightMeasureSpec);
         initBitmaps(mWidth, mHeight);

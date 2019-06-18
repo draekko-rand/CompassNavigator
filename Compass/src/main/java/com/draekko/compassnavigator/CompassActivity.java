@@ -184,7 +184,7 @@ public class CompassActivity extends FragmentActivity
         staticActivity = this;
 
         mSharedPreferences = PreferenceManager.getDefaultSharedPreferences(staticActivity);
-        
+
         settings = new Settings();
         settings.load(mSharedPreferences);
 
