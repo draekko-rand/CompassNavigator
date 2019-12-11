@@ -57,7 +57,7 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.draekko.common.lib.GeomagneticField2019;
+import com.draekko.common.lib.GeomagneticField2020;
 import com.draekko.compassnavigator.dialogs.NoSensorErrorDialogFragment;
 import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.common.api.ResolvableApiException;
@@ -152,7 +152,7 @@ public class CompassActivity extends FragmentActivity
     private ArrayList<String> permissionsRejected = new ArrayList<>();
 
     /* GPS */
-    private GeomagneticField2019 mGeomagneticField;
+    private GeomagneticField2020 mGeomagneticField;
     private float[] mGravity;
     private float[] mGeomagnetic;
 
@@ -262,7 +262,7 @@ public class CompassActivity extends FragmentActivity
                             mWayLatitude = location.getLatitude();
                             mWayLongitude = location.getLongitude();
 
-                            mGeomagneticField = new GeomagneticField2019((float)mWayLatitude, (float)mWayLongitude, (float)location.getAltitude(), location.getTime());
+                            mGeomagneticField = new GeomagneticField2020((float)mWayLatitude, (float)mWayLongitude, (float)location.getAltitude(), location.getTime());
                             mDeclination = mGeomagneticField.getDeclination();
                             Log.i(TAG, String.format(Locale.US, "LATLNG [%f, %f] DECL[%f] [C]", mWayLatitude, mWayLongitude, mDeclination));
                             if (mDeclination < 0) {
@@ -545,7 +545,7 @@ public class CompassActivity extends FragmentActivity
                     if (location != null) {
                         mWayLatitude = location.getLatitude();
                         mWayLongitude = location.getLongitude();
-                        mGeomagneticField = new GeomagneticField2019((float)mWayLatitude, (float)mWayLongitude, (float)location.getAltitude(), location.getTime());
+                        mGeomagneticField = new GeomagneticField2020((float)mWayLatitude, (float)mWayLongitude, (float)location.getAltitude(), location.getTime());
                         mDeclination = mGeomagneticField.getDeclination();
                         Log.i(TAG, String.format(Locale.US, "LATLNG [%f, %f] DECL[%f]", mWayLatitude, mWayLongitude, mDeclination));
                         if (mDeclination < 0) {
