@@ -117,8 +117,20 @@ public class GeomagneticField2020 {
             { 0.0f,  -0.0f,  0.0f,  -0.1f,  0.1f,  -0.0f,  0.0f,  -0.0f,  0.1f,  -0.0f,  -0.0f,  0.0f,  -0.1f },
     };
 
-    static private final long BASE_TIME =
-        new GregorianCalendar(2020, 1, 1).getTimeInMillis();
+    private static long getBaseTime() {
+        final long longtime;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            return new Calendar.Builder()
+                    .setTimeZone(TimeZone.getTimeZone("UTC"))
+                    .setDate(2020, Calendar.JANUARY, 1)
+                    .build()
+                    .getTimeInMillis();
+        } else {
+            return new GregorianCalendar(2020, 1, 1).getTimeInMillis();
+        }
+    }
+
+    static private final long BASE_TIME = getBaseTime();
 
     // The ratio between the Gauss-normalized associated Legendre functions and
     // the Schmid quasi-normalized ones. Compute these once staticly since they
