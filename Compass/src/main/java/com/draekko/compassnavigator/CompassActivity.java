@@ -23,10 +23,12 @@ package com.draekko.compassnavigator;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.Application;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentSender;
 import android.content.SharedPreferences;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
 import android.content.res.Configuration;
@@ -37,9 +39,11 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.location.Location;
+import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.preference.Preference;
 import android.preference.PreferenceManager;
 import android.support.v4.app.ActivityCompat;
@@ -59,6 +63,8 @@ import android.widget.Toast;
 
 import com.draekko.common.lib.GeomagneticField2020;
 import com.draekko.compassnavigator.dialogs.NoSensorErrorDialogFragment;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.common.api.ResolvableApiException;
 import com.google.android.gms.location.FusedLocationProviderClient;
@@ -74,6 +80,7 @@ import com.google.android.gms.location.LocationSettingsRequest;
 import com.google.android.gms.location.LocationSettingsResponse;
 import com.google.android.gms.location.LocationSettingsStatusCodes;
 import com.google.android.gms.location.SettingsClient;
+import com.google.android.gms.tasks.OnCanceledListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 
@@ -85,6 +92,7 @@ import java.util.Set;
 public class CompassActivity extends FragmentActivity
         implements
         Preference.OnPreferenceChangeListener,
+        LocationListener,
         SensorEventListener {
 
     private static final String TAG = "CompassActivity";
@@ -106,7 +114,7 @@ public class CompassActivity extends FragmentActivity
     private static SharedPreferences preferences;
     private static Activity staticActivity;
     private static Settings settings;
-    
+
     private boolean mNight = false;
     private boolean mAltRose = false;
     private boolean mGpsDecl = true;
@@ -163,12 +171,16 @@ public class CompassActivity extends FragmentActivity
     private LocationSettingsRequest mLocationSettingsRequest;
     private LocationManager locationManager;
 
-    boolean isGPSEnabled = false;
+    boolean isGPSEnabled = true;
     private double mWayLatitude = 0.0;
     private double mWayLongitude = 0.0;
     private double mDeclination = 0.0;
 
     private static SharedPreferences mSharedPreferences;
+
+    private boolean gpsProviderEnabled = false;
+    private boolean networkProviderEnabled = false;
+    private Location mLocation;
 
     View.OnClickListener onClickListener = new View.OnClickListener() {
         @Override
@@ -206,7 +218,7 @@ public class CompassActivity extends FragmentActivity
         mDeclinationLLFrame = (LinearLayout) findViewById(R.id.declinationLLFrame);
         mTextDeclinatonDegrees = (TextView) findViewById(R.id.declinationDegrees);
         mTextDeclinatonOrientation = (TextView) findViewById(R.id.declinationDirection);
-        mSettingsButtons = (ImageButton)  findViewById(R.id.settings);
+        mSettingsButtons = (ImageButton) findViewById(R.id.settings);
         mTextDegrees = (TextView) findViewById(R.id.degrees);
         mTextBezelDegrees = (TextView) findViewById(R.id.degreesBezel);
         mTextBezelRevDegrees = (TextView) findViewById(R.id.degreesBezelReverse);
@@ -248,6 +260,12 @@ public class CompassActivity extends FragmentActivity
             mSettingsClient = LocationServices.getSettingsClient(staticActivity);
             LocationSettingsRequest.Builder builder = new LocationSettingsRequest.Builder()
                     .addLocationRequest(locationRequest);
+
+            gpsProviderEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+            networkProviderEnabled = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+
+            callLocationLoop();
+
             mLocationSettingsRequest = builder.build();
             builder.setAlwaysShow(true);
             turnGPSOn();
@@ -529,7 +547,69 @@ public class CompassActivity extends FragmentActivity
         }
     }
 
+    private void callLocationLoop() {
+        new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                callLocationLoop();
+            }
+        }, 100);
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+                ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
+        if (isGPSEnabled) {
+            return;
+        }
+        if (gpsProviderEnabled || networkProviderEnabled) {
+            if (networkProviderEnabled) {
+                locationManager.requestLocationUpdates(
+                        LocationManager.NETWORK_PROVIDER, 1000, 30, (LocationListener) staticActivity);
+                if (locationManager != null) {
+                    mLocation = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+                    String providerType = "network";
+                    Log.d(TAG, "network lbs provider:" +
+                            (mLocation == null ? "null" : String.valueOf(mLocation.getLatitude()) + ","
+                                    + String.valueOf(mLocation.getLongitude())));
+                    if (mLocation != null) {
+                        mWayLatitude = mLocation.getLatitude();
+                        mWayLongitude = mLocation.getLongitude();
+                    }
+                }
+            }
+
+            if (gpsProviderEnabled) {
+                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,
+                        1000, 1, (LocationListener) staticActivity);
+                if (locationManager != null) {
+                    if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                        // TODO: Consider calling
+                        //    ActivityCompat#requestPermissions
+                        // here to request the missing permissions, and then overriding
+                        //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                        //                                          int[] grantResults)
+                        // to handle the case where the user grants the permission. See the documentation
+                        // for ActivityCompat#requestPermissions for more details.
+                        return;
+                    }
+                    mLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+                    String providerType = "gps";
+                    Log.d(TAG, "gps lbs provider:" +
+                            (mLocation == null ? "null" : String.valueOf(mLocation.getLatitude()) + "," +
+                                    String.valueOf(mLocation.getLongitude())));
+                    if (mLocation != null) {
+                        mWayLatitude = mLocation.getLatitude();
+                        mWayLongitude = mLocation.getLongitude();
+                    }
+                }
+            }
+        }
+    }
+
     private void getLocation() {
+        if (!isGooglePlayServicesAvailable(staticActivity)) {
+            return;
+        }
         if (!mGpsDecl) {
             return;
         }
@@ -605,6 +685,10 @@ public class CompassActivity extends FragmentActivity
     }
 
     public void turnGPSOn() {
+        if (!isGooglePlayServicesAvailable(staticActivity)) {
+            isGPSEnabled = false;
+            return;
+        }
         if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
             Log.i(TAG, "GPS is enabled");
             isGPSEnabled = true;
@@ -618,6 +702,13 @@ public class CompassActivity extends FragmentActivity
                             isGPSEnabled = true;
                         }
                     })
+                    .addOnCanceledListener(new OnCanceledListener() {
+                        @Override
+                        public void onCanceled() {
+                            Log.i(TAG, "GPS is canceled");
+                            isGPSEnabled = false;
+                        }
+                    })
                     .addOnFailureListener(staticActivity, new OnFailureListener() {
                         @Override
                         public void onFailure(Exception e) {
@@ -625,6 +716,7 @@ public class CompassActivity extends FragmentActivity
                             int statusCode = ((ApiException) e).getStatusCode();
                             switch (statusCode) {
                                 case LocationSettingsStatusCodes.RESOLUTION_REQUIRED: {
+                                    isGPSEnabled = false;
                                     try {
                                         ResolvableApiException rae = (ResolvableApiException) e;
                                         rae.startResolutionForResult(staticActivity, GPS_REQUEST);
@@ -634,6 +726,7 @@ public class CompassActivity extends FragmentActivity
                                     break;
                                 }
                                 case LocationSettingsStatusCodes.SETTINGS_CHANGE_UNAVAILABLE: {
+                                    isGPSEnabled = false;
                                     String errorMsg = "Location settings are invalid, go to Settings to change them.";
                                     Log.e(TAG, errorMsg);
                                     Toast.makeText(staticActivity, errorMsg, Toast.LENGTH_LONG).show();
@@ -680,5 +773,57 @@ public class CompassActivity extends FragmentActivity
                 break;
         }
         super.onActivityResult(requestCode, resultCode, data);
+    }
+
+    public boolean isGooglePlayServicesAvailable(Activity activity) {
+        GoogleApiAvailability googleApiAvailability = GoogleApiAvailability.getInstance();
+        int status = googleApiAvailability.isGooglePlayServicesAvailable(activity);
+        if(status != ConnectionResult.SUCCESS) {
+            if(googleApiAvailability.isUserResolvableError(status)) {
+                //googleApiAvailability.getErrorDialog(activity, status, 2404).show();
+            }
+            return false;
+        }
+        return true;
+    }
+
+    public boolean isGooglePlayServicesAvailable1(Context context){
+        GoogleApiAvailability googleApiAvailability = GoogleApiAvailability.getInstance();
+        int resultCode = googleApiAvailability.isGooglePlayServicesAvailable(context);
+        return resultCode == ConnectionResult.SUCCESS;
+    }
+
+    @Override
+    public void onLocationChanged(Location location) {
+        if (location != null) {
+            mWayLatitude = location.getLatitude();
+            mWayLongitude = location.getLongitude();
+            mGeomagneticField = new GeomagneticField2020((float)mWayLatitude, (float)mWayLongitude, (float)location.getAltitude(), location.getTime());
+            mDeclination = mGeomagneticField.getDeclination();
+            Log.i(TAG, String.format(Locale.US, "LATLNG [%f, %f] DECL[%f]", mWayLatitude, mWayLongitude, mDeclination));
+            if (mDeclination < 0) {
+                mTextDeclinatonOrientation.setText(" W");
+            } else if (mDeclination > 0) {
+                mTextDeclinatonOrientation.setText(" E");
+            } else {
+                mTextDeclinatonOrientation.setText("");
+            }
+            mTextDeclinatonDegrees.setText(String.format(Locale.US, "%.1f°", Math.abs(mDeclination)));
+        }
+    }
+
+    @Override
+    public void onStatusChanged(String provider, int status, Bundle extras) {
+
+    }
+
+    @Override
+    public void onProviderEnabled(String provider) {
+
+    }
+
+    @Override
+    public void onProviderDisabled(String provider) {
+
     }
 }

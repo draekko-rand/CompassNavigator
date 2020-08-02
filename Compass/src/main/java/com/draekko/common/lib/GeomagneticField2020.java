@@ -19,7 +19,11 @@
 
 package com.draekko.common.lib;
 
+import android.os.Build;
+
+import java.util.Calendar;
 import java.util.GregorianCalendar;
+import java.util.TimeZone;
 
 /**
  * Estimates magnetic field at a given point on

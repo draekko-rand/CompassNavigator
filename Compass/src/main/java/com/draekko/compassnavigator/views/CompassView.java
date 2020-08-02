@@ -185,13 +185,8 @@ public class CompassView extends View {
         int w = drawable.getIntrinsicWidth();
         int h = drawable.getIntrinsicHeight();
         if(w <= 0 || h <= 0) {
-            //bitmap = Bitmap.createBitmap((int)newWidth, (int)newHeight, Bitmap.Config.ARGB_8888);
             bitmap = Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888);
         } else {
-            //if (w > newWidth || h > newHeight) {
-            //    w = (int)newWidth;
-            //    h = (int)newHeight;
-            //}
             try {
                 bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
             } catch (OutOfMemoryError e) {
