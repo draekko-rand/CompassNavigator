@@ -1,7 +1,7 @@
 /* =========================================================================
 
     Compass Navigator
-    Copyright (C) 2019 Draekko, Benoit Touchette
+    Copyright (C) 2019, 2022, Draekko, Benoit Touchette
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -115,6 +115,16 @@ public class SettingsActivity  extends AppCompatActivity {
                 }
             });
 
+            Preference prefsAutoUpManDeclination = findPreference(Settings.AUTOUPDECL_VALUE_KEY);
+            prefsAutoUpManDeclination.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
+                @Override
+                public boolean onPreferenceChange(Preference preference, Object newValue) {
+                    settings.setAutoUpdateManualDeclination((boolean)newValue);
+                    settings.save(sharedPreferences);
+                    return true;
+                }
+            });
+
             Preference prefsEnableNightMode = findPreference(Settings.ENABLE_NIGHTMODE_KEY);
             prefsEnableNightMode.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
                 @Override
@@ -170,7 +180,7 @@ public class SettingsActivity  extends AppCompatActivity {
                                         Toast.makeText(getContext(), "Invalid value was entered, value was not saved.", Toast.LENGTH_LONG);
                                         return;
                                     }
-                                    settings.setManualDeclinationValue(declination);
+                                    settings.setManualDeclinationValue(rounded((float)declination));
                                     settings.save(sharedPreferences);
                                 }
                             })
@@ -202,5 +212,12 @@ public class SettingsActivity  extends AppCompatActivity {
                     .getSharedPreferences()
                     .registerOnSharedPreferenceChangeListener(sharedPrefsChangeListener);
         }
+    }
+
+    private static float rounded(float value) {
+        float ret = 0.0f;
+        int r1 = (int)(value * 10.0f);
+        ret = (float)r1 / 10.0f;
+        return ret;
     }
 }

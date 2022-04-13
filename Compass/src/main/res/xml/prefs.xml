@@ -18,6 +18,11 @@
         android:defaultValue="true"/>
 
     <SwitchPreference
+        android:key="auto_update_declination_value"
+        android:title="Auto update manual declination from GPS adjustments"
+        android:defaultValue="false"/>
+
+    <SwitchPreference
         android:key="enable_manual_declination"
         android:title="Enable manual declination adjustment"
         android:defaultValue="true"/>

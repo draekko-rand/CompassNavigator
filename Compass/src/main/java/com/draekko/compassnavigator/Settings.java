@@ -1,7 +1,7 @@
 /* =========================================================================
 
     Compass Navigator
-    Copyright (C) 2019 Draekko, Benoit Touchette
+    Copyright (C) 2019,2022 Draekko, Benoit Touchette
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -31,7 +31,8 @@ public class Settings {
     public static final String SHOW_CALIBRAION_KEY = "show_calibration_dialog";
     public static final String ENABLE_MANDECL_KEY = "enable_manual_declination";
     public static final String MANDECL_VALUE_KEY = "manual_declination_value";
-
+    public static final String AUTOUPDECL_VALUE_KEY = "auto_update_declination_value";
+    
     private static boolean enableNightMode;
     private static boolean enableAltRose;
     private static boolean enableGpsDeclination;
@@ -39,6 +40,7 @@ public class Settings {
     private static int bearignDirection;
     private static boolean showCalibration;
     private static float manualDeclinationValue;
+    private static boolean autoUpManDeclinationValue;
 
     public void load(SharedPreferences prefs) {
         enableNightMode = prefs.getBoolean(ENABLE_NIGHTMODE_KEY, false);
@@ -48,6 +50,7 @@ public class Settings {
         showCalibration = prefs.getBoolean(SHOW_CALIBRAION_KEY, true);
         bearignDirection = prefs.getInt(BEARING_DIRECTION_KEY, 0);
         manualDeclinationValue = prefs.getFloat(MANDECL_VALUE_KEY, 0.0f);
+        autoUpManDeclinationValue = prefs.getBoolean(AUTOUPDECL_VALUE_KEY, false);
     }
 
     public void save(SharedPreferences prefs) {
@@ -68,8 +71,17 @@ public class Settings {
         editor.putBoolean(ENABLE_GPSDECL_KEY, enableGpsDeclination);
         editor.putBoolean(ENABLE_MANDECL_KEY, enableManualDeclination);
         editor.putBoolean(SHOW_CALIBRAION_KEY, showCalibration);
+        editor.putBoolean(AUTOUPDECL_VALUE_KEY, autoUpManDeclinationValue);
         editor.putInt(BEARING_DIRECTION_KEY, bearignDirection);
         editor.putFloat(MANDECL_VALUE_KEY, manualDeclinationValue);
+    }
+
+    public static boolean getAutoUpdateManualDeclination() {
+        return autoUpManDeclinationValue;
+    }
+
+    public static void setAutoUpdateManualDeclination(boolean value) {
+        autoUpManDeclinationValue = value;
     }
 
     public static boolean getEnableAltRose() {
