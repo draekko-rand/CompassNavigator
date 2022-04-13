@@ -121,8 +121,8 @@ public class GeomagneticField2020 {
             { 0.0f,  -0.0f,  0.0f,  -0.1f,  0.1f,  -0.0f,  0.0f,  -0.0f,  0.1f,  -0.0f,  -0.0f,  0.0f,  -0.1f },
     };
 
+    @SuppressWarnings("all")
     private static long getBaseTime() {
-        final long longtime;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             return new Calendar.Builder()
                     .setTimeZone(TimeZone.getTimeZone("UTC"))
@@ -133,8 +133,6 @@ public class GeomagneticField2020 {
             return new GregorianCalendar(2020, 1, 1).getTimeInMillis();
         }
     }
-
-    static private final long BASE_TIME = getBaseTime();
 
     // The ratio between the Gauss-normalized associated Legendre functions and
     // the Schmid quasi-normalized ones. Compute these once staticly since they
@@ -160,16 +158,16 @@ public class GeomagneticField2020 {
                                 float gdLongitudeDeg,
                                 float altitudeMeters,
                                 long timeMillis) {
-        final int MAX_N = G_COEFF.length; // Maximum degree of the coefficients.
+        final int MAX_N = G_COEFF.length;
 
+        // Maximum degree of the coefficients.
         // We don't handle the north and south poles correctly -- pretend that
         // we're not quite at them to avoid crashing.
         gdLatitudeDeg = Math.min(90.0f - 1e-5f,
-                                 Math.max(-90.0f + 1e-5f, gdLatitudeDeg));
+                Math.max(-90.0f + 1e-5f, gdLatitudeDeg));
         computeGeocentricCoordinates(gdLatitudeDeg,
-                                     gdLongitudeDeg,
-                                     altitudeMeters);
-
+                gdLongitudeDeg,
+                altitudeMeters);
         assert G_COEFF.length == H_COEFF.length;
 
         // Note: LegendreTable computes associated Legendre functions for
@@ -177,8 +175,8 @@ public class GeomagneticField2020 {
         // sin(latitude), which is the same as cos(PI/2 - latitude), except the
         // derivate will be negated.
         LegendreTable legendre =
-            new LegendreTable(MAX_N - 1,
-                              (float) (Math.PI / 2.0 - mGcLatitudeRad));
+                new LegendreTable(MAX_N - 1,
+                        (float) (Math.PI / 2.0 - mGcLatitudeRad));
 
         // Compute a table of (EARTH_REFERENCE_RADIUS_KM / radius)^n for i in
         // 0..MAX_N-2 (this is much faster than calling Math.pow MAX_N+1 times).
@@ -187,7 +185,7 @@ public class GeomagneticField2020 {
         relativeRadiusPower[1] = EARTH_REFERENCE_RADIUS_KM / mGcRadiusKm;
         for (int i = 2; i < relativeRadiusPower.length; ++i) {
             relativeRadiusPower[i] = relativeRadiusPower[i - 1] *
-                relativeRadiusPower[1];
+                    relativeRadiusPower[1];
         }
 
         // Compute tables of sin(lon * m) and cos(lon * m) for m = 0..MAX_N --
@@ -198,7 +196,6 @@ public class GeomagneticField2020 {
         cosMLon[0] = 1.0f;
         sinMLon[1] = (float) Math.sin(mGcLongitudeRad);
         cosMLon[1] = (float) Math.cos(mGcLongitudeRad);
-
         for (int m = 2; m < MAX_N; ++m) {
             // Standard expansions for sin((m-x)*theta + x*theta) and
             // cos((m-x)*theta + x*theta).
@@ -206,48 +203,43 @@ public class GeomagneticField2020 {
             sinMLon[m] = sinMLon[m-x] * cosMLon[x] + cosMLon[m-x] * sinMLon[x];
             cosMLon[m] = cosMLon[m-x] * cosMLon[x] - sinMLon[m-x] * sinMLon[x];
         }
-
         float inverseCosLatitude = 1.0f / (float) Math.cos(mGcLatitudeRad);
         float yearsSinceBase =
-            (timeMillis - BASE_TIME) / (365f * 24f * 60f * 60f * 1000f);
+                (timeMillis - getBaseTime()) / (365f * 24f * 60f * 60f * 1000f);
 
         // We now compute the magnetic field strength given the geocentric
         // location. The magnetic field is the derivative of the potential
         // function defined by the model. See NOAA Technical Report: The US/UK
-        // World Magnetic Model for 2020-2020 for the derivation.
+        // World Magnetic Model for 2020-2025 for the derivation.
         float gcX = 0.0f;  // Geocentric northwards component.
         float gcY = 0.0f;  // Geocentric eastwards component.
         float gcZ = 0.0f;  // Geocentric downwards component.
-
         for (int n = 1; n < MAX_N; n++) {
             for (int m = 0; m <= n; m++) {
                 // Adjust the coefficients for the current date.
                 float g = G_COEFF[n][m] + yearsSinceBase * DELTA_G[n][m];
                 float h = H_COEFF[n][m] + yearsSinceBase * DELTA_H[n][m];
-
                 // Negative derivative with respect to latitude, divided by
                 // radius.  This looks like the negation of the version in the
-                // NOAA Techincal report because that report used
+                // NOAA Technical report because that report used
                 // P_n^m(sin(theta)) and we use P_n^m(cos(90 - theta)), so the
                 // derivative with respect to theta is negated.
                 gcX += relativeRadiusPower[n+2]
-                    * (g * cosMLon[m] + h * sinMLon[m])
-                    * legendre.mPDeriv[n][m]
-                    * SCHMIDT_QUASI_NORM_FACTORS[n][m];
-
+                        * (g * cosMLon[m] + h * sinMLon[m])
+                        * legendre.mPDeriv[n][m]
+                        * SCHMIDT_QUASI_NORM_FACTORS[n][m];
                 // Negative derivative with respect to longitude, divided by
                 // radius.
                 gcY += relativeRadiusPower[n+2] * m
-                    * (g * sinMLon[m] - h * cosMLon[m])
-                    * legendre.mP[n][m]
-                    * SCHMIDT_QUASI_NORM_FACTORS[n][m]
-                    * inverseCosLatitude;
-
+                        * (g * sinMLon[m] - h * cosMLon[m])
+                        * legendre.mP[n][m]
+                        * SCHMIDT_QUASI_NORM_FACTORS[n][m]
+                        * inverseCosLatitude;
                 // Negative derivative with respect to radius.
                 gcZ -= (n + 1) * relativeRadiusPower[n+2]
-                    * (g * cosMLon[m] + h * sinMLon[m])
-                    * legendre.mP[n][m]
-                    * SCHMIDT_QUASI_NORM_FACTORS[n][m];
+                        * (g * cosMLon[m] + h * sinMLon[m])
+                        * legendre.mP[n][m]
+                        * SCHMIDT_QUASI_NORM_FACTORS[n][m];
             }
         }
 
@@ -256,10 +248,10 @@ public class GeomagneticField2020 {
         // geocentric frame and the geodetic frame.
         double latDiffRad = Math.toRadians(gdLatitudeDeg) - mGcLatitudeRad;
         mX = (float) (gcX * Math.cos(latDiffRad)
-                      + gcZ * Math.sin(latDiffRad));
+                + gcZ * Math.sin(latDiffRad));
         mY = gcY;
         mZ = (float) (- gcX * Math.sin(latDiffRad)
-                      + gcZ * Math.cos(latDiffRad));
+                + gcZ * Math.cos(latDiffRad));
     }
 
     /**
@@ -302,7 +294,7 @@ public class GeomagneticField2020 {
     }
 
     /**
-     * @return  Horizontal component of the field strength in nonoteslas.
+     * @return  Horizontal component of the field strength in nanoteslas.
      */
     public float getHorizontalStrength() {
         return (float) Math.hypot(mX, mY);
@@ -336,21 +328,17 @@ public class GeomagneticField2020 {
         float slat = (float) Math.sin(gdLatRad);
         float tlat = slat / clat;
         float latRad =
-            (float) Math.sqrt(a2 * clat * clat + b2 * slat * slat);
-
+                (float) Math.sqrt(a2 * clat * clat + b2 * slat * slat);
         mGcLatitudeRad = (float) Math.atan(tlat * (latRad * altitudeKm + b2)
-                                           / (latRad * altitudeKm + a2));
-
+                / (latRad * altitudeKm + a2));
         mGcLongitudeRad = (float) Math.toRadians(gdLongitudeDeg);
-
         float radSq = altitudeKm * altitudeKm
-            + 2 * altitudeKm * (float) Math.sqrt(a2 * clat * clat +
-                                                 b2 * slat * slat)
-            + (a2 * a2 * clat * clat + b2 * b2 * slat * slat)
-            / (a2 * clat * clat + b2 * slat * slat);
+                + 2 * altitudeKm * (float) Math.sqrt(a2 * clat * clat +
+                b2 * slat * slat)
+                + (a2 * a2 * clat * clat + b2 * b2 * slat * slat)
+                / (a2 * clat * clat + b2 * slat * slat);
         mGcRadiusKm = (float) Math.sqrt(radSq);
     }
-
 
     /**
      * Utility class to compute a table of Gauss-normalized associated Legendre
@@ -361,10 +349,8 @@ public class GeomagneticField2020 {
         // is, they are normal Legendre functions multiplied by
         // (n-m)!/(2n-1)!! (where (2n-1)!! = 1*3*5*...*2n-1)
         public final float[][] mP;
-
         // Derivative of mP, with respect to theta.
         public final float[][] mPDeriv;
-
         /**
          * @param maxN
          *            The maximum n- and m-values to support
@@ -379,7 +365,6 @@ public class GeomagneticField2020 {
             // relations.
             float cos = (float) Math.cos(thetaRad);
             float sin = (float) Math.sin(thetaRad);
-
             mP = new float[maxN + 1][];
             mPDeriv = new float[maxN + 1][];
             mP[0] = new float[] { 1.0f };
@@ -391,24 +376,23 @@ public class GeomagneticField2020 {
                     if (n == m) {
                         mP[n][m] = sin * mP[n - 1][m - 1];
                         mPDeriv[n][m] = cos * mP[n - 1][m - 1]
-                            + sin * mPDeriv[n - 1][m - 1];
+                                + sin * mPDeriv[n - 1][m - 1];
                     } else if (n == 1 || m == n - 1) {
                         mP[n][m] = cos * mP[n - 1][m];
                         mPDeriv[n][m] = -sin * mP[n - 1][m]
-                            + cos * mPDeriv[n - 1][m];
+                                + cos * mPDeriv[n - 1][m];
                     } else {
                         assert n > 1 && m < n - 1;
                         float k = ((n - 1) * (n - 1) - m * m)
-                            / (float) ((2 * n - 1) * (2 * n - 3));
+                                / (float) ((2 * n - 1) * (2 * n - 3));
                         mP[n][m] = cos * mP[n - 1][m] - k * mP[n - 2][m];
                         mPDeriv[n][m] = -sin * mP[n - 1][m]
-                            + cos * mPDeriv[n - 1][m] - k * mPDeriv[n - 2][m];
+                                + cos * mPDeriv[n - 1][m] - k * mPDeriv[n - 2][m];
                     }
                 }
             }
         }
     }
-
     /**
      * Compute the ration between the Gauss-normalized associated Legendre
      * functions and the Schmidt quasi-normalized version. This is equivalent to
@@ -420,11 +404,11 @@ public class GeomagneticField2020 {
         for (int n = 1; n <= maxN; n++) {
             schmidtQuasiNorm[n] = new float[n + 1];
             schmidtQuasiNorm[n][0] =
-                schmidtQuasiNorm[n - 1][0] * (2 * n - 1) / (float) n;
+                    schmidtQuasiNorm[n - 1][0] * (2 * n - 1) / (float) n;
             for (int m = 1; m <= n; m++) {
                 schmidtQuasiNorm[n][m] = schmidtQuasiNorm[n][m - 1]
-                    * (float) Math.sqrt((n - m + 1) * (m == 1 ? 2 : 1)
-                                / (float) (n + m));
+                        * (float) Math.sqrt((n - m + 1) * (m == 1 ? 2 : 1)
+                        / (float) (n + m));
             }
         }
         return schmidtQuasiNorm;

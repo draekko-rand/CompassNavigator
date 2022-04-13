@@ -44,7 +44,7 @@ public class Settings {
         enableNightMode = prefs.getBoolean(ENABLE_NIGHTMODE_KEY, false);
         enableAltRose = prefs.getBoolean(ENABLE_ALTROSE_KEY, false);
         enableGpsDeclination = prefs.getBoolean(ENABLE_GPSDECL_KEY, true);
-        enableManualDeclination = prefs.getBoolean(ENABLE_MANDECL_KEY, true);
+        enableManualDeclination = prefs.getBoolean(ENABLE_MANDECL_KEY, false);
         showCalibration = prefs.getBoolean(SHOW_CALIBRAION_KEY, true);
         bearignDirection = prefs.getInt(BEARING_DIRECTION_KEY, 0);
         manualDeclinationValue = prefs.getFloat(MANDECL_VALUE_KEY, 0.0f);

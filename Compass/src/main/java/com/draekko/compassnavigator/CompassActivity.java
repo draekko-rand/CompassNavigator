@@ -1,7 +1,7 @@
 /* =========================================================================
 
     Compass Navigator
-    Copyright (C) 2019 Draekko, Benoit Touchette
+    Copyright (C) 2019,2022 Draekko, Benoit Touchette
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -20,15 +20,19 @@
 
 package com.draekko.compassnavigator;
 
+import static android.view.View.SYSTEM_UI_FLAG_FULLSCREEN;
+import static android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION;
+import static android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
+import static android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE;
+import static android.view.View.SYSTEM_UI_LAYOUT_FLAGS;
+
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.app.Application;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentSender;
 import android.content.SharedPreferences;
-import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
 import android.content.res.Configuration;
@@ -46,8 +50,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.preference.Preference;
 import android.preference.PreferenceManager;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.app.FragmentActivity;
 
 import android.util.Log;
 import android.view.Display;
@@ -57,9 +59,19 @@ import android.view.View;
 import android.view.View.OnTouchListener;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
-import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.activity.result.ActivityResult;
+import androidx.activity.result.ActivityResultCallback;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.core.app.ActivityCompat;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
+import androidx.fragment.app.FragmentManager;
 
 import com.draekko.common.lib.GeomagneticField2020;
 import com.draekko.compassnavigator.dialogs.NoSensorErrorDialogFragment;
@@ -89,7 +101,7 @@ import java.util.Locale;
 import java.util.Set;
 
 @SuppressLint({"NewApi"})
-public class CompassActivity extends FragmentActivity
+public class CompassActivity extends AppCompatActivity
         implements
         Preference.OnPreferenceChangeListener,
         LocationListener,
@@ -98,6 +110,7 @@ public class CompassActivity extends FragmentActivity
     private static final String TAG = "CompassActivity";
     private static final int LOCATION_PERMISSION_REQUEST = 1;
     private static final String[] REQUIRED_PERMISSIONS = {
+            Manifest.permission.ACCESS_COARSE_LOCATION,
             Manifest.permission.ACCESS_FINE_LOCATION
     };
 
@@ -112,7 +125,7 @@ public class CompassActivity extends FragmentActivity
     private static int height;
     private static int width;
     private static SharedPreferences preferences;
-    private static Activity staticActivity;
+    private static Activity mStaticActivity;
     private static Settings settings;
 
     private boolean mNight = false;
@@ -181,11 +194,19 @@ public class CompassActivity extends FragmentActivity
     private boolean gpsProviderEnabled = false;
     private boolean networkProviderEnabled = false;
     private Location mLocation;
+    private FragmentManager mFragmentManager;
+
+    private static int uiOptions =
+            SYSTEM_UI_FLAG_IMMERSIVE_STICKY |
+                    SYSTEM_UI_LAYOUT_FLAGS |
+                    SYSTEM_UI_FLAG_LAYOUT_STABLE |
+                    SYSTEM_UI_FLAG_HIDE_NAVIGATION |
+                    SYSTEM_UI_FLAG_FULLSCREEN;
 
     View.OnClickListener onClickListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            SettingsActivity.startSettingsActivityForResult(staticActivity, SETTINGS_REQUEST);
+            SettingsActivity.startSettingsActivityForResult(mStaticActivity, SETTINGS_REQUEST);
         }
     };
 
@@ -193,9 +214,12 @@ public class CompassActivity extends FragmentActivity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
         setTheme(R.style.AppTheme);
-        staticActivity = this;
+        mStaticActivity = this;
 
-        mSharedPreferences = PreferenceManager.getDefaultSharedPreferences(staticActivity);
+        mFragmentManager = getSupportFragmentManager();
+        setupOnRequestPermissionsResult();
+
+        mSharedPreferences = PreferenceManager.getDefaultSharedPreferences(mStaticActivity);
 
         settings = new Settings();
         settings.load(mSharedPreferences);
@@ -207,13 +231,16 @@ public class CompassActivity extends FragmentActivity
         mBearingDirection = settings.getBearingDirection();
         mManualDecl = settings.getManualDeclinationValue();
 
-        getWindow().getDecorView().setSystemUiVisibility(
-                View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                        | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                        | View.SYSTEM_UI_FLAG_FULLSCREEN
-                        | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+        if (Build.VERSION.SDK_INT < 30) {
+            View decorView = getWindow().getDecorView();
+            decorView.setSystemUiVisibility(uiOptions);
+        } else {
+            if (!hideSystemBars()) {
+                View decorView = this.getWindow().getDecorView();
+                //noinspection deprecation
+                decorView.setSystemUiVisibility(uiOptions);
+            }
+        }
 
         mDeclinationLLFrame = (LinearLayout) findViewById(R.id.declinationLLFrame);
         mTextDeclinatonDegrees = (TextView) findViewById(R.id.declinationDegrees);
@@ -228,6 +255,17 @@ public class CompassActivity extends FragmentActivity
         permissions.add(Manifest.permission.ACCESS_FINE_LOCATION);
         permissions.add(Manifest.permission.ACCESS_COARSE_LOCATION);
         permissionsToRequest = permissionsToRequest(permissions);
+
+        mDeclinationLLFrame.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (settings.getEnableGpsDeclination()) {
+
+                } else {
+
+                }
+            }
+        });
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (permissionsToRequest.size() > 0) {
@@ -247,17 +285,17 @@ public class CompassActivity extends FragmentActivity
                     settings.setShowCalibration(false);
                     settings.save(mSharedPreferences);
                 }
-            }).show(getSupportFragmentManager(), "calibrate");
+            }).show(mFragmentManager, "calibrate");
         }
 
         if (mGpsDecl) {
-            mFusedLocationClient = LocationServices.getFusedLocationProviderClient(staticActivity);
+            mFusedLocationClient = LocationServices.getFusedLocationProviderClient(mStaticActivity);
             locationRequest = LocationRequest.create();
             locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
             locationRequest.setInterval(10 * 1000); // 10 seconds
             locationRequest.setFastestInterval(5 * 1000); // 5 seconds
-            locationManager = (LocationManager) staticActivity.getSystemService(Context.LOCATION_SERVICE);
-            mSettingsClient = LocationServices.getSettingsClient(staticActivity);
+            locationManager = (LocationManager) mStaticActivity.getSystemService(Context.LOCATION_SERVICE);
+            mSettingsClient = LocationServices.getSettingsClient(mStaticActivity);
             LocationSettingsRequest.Builder builder = new LocationSettingsRequest.Builder()
                     .addLocationRequest(locationRequest);
 
@@ -289,6 +327,9 @@ public class CompassActivity extends FragmentActivity
                                 mTextDeclinatonOrientation.setText("E");
                             } else {
                                 mTextDeclinatonOrientation.setText("");
+                            }
+                            if (mManDecl) {
+                                mDeclination = mManualDecl;
                             }
                             mTextDeclinatonDegrees.setText(String.format("%.1f° ", Math.abs(mDeclination)));
                         }
@@ -438,14 +479,14 @@ public class CompassActivity extends FragmentActivity
         hasMagnetic = mSensorManager.registerListener(this, mMagnetometer, SensorManager.SENSOR_DELAY_NORMAL);
         hasAccel = mSensorManager.registerListener(this, mAccelerometer, SensorManager.SENSOR_DELAY_NORMAL);
         if (!(hasMagneticCheck || hasMagnetic)) {
-            if (getSupportFragmentManager().findFragmentByTag("noSensorError") == null) {
-                NoSensorErrorDialogFragment.newInstance(null).show(getSupportFragmentManager(), "noSensorError");
+            if (mFragmentManager.findFragmentByTag("noSensorError") == null) {
+                NoSensorErrorDialogFragment.newInstance(null).show(mFragmentManager, "noSensorError");
             }
             hasMagneticCheck = true;
         }
         if (!(hasAccelCheck || hasAccel)) {
-            if (getSupportFragmentManager().findFragmentByTag("noSensorError") == null) {
-                NoSensorErrorDialogFragment.newInstance(null).show(getSupportFragmentManager(), "noSensorError");
+            if (mFragmentManager.findFragmentByTag("noSensorError") == null) {
+                NoSensorErrorDialogFragment.newInstance(null).show(mFragmentManager, "noSensorError");
             }
             hasAccelCheck = true;
         }
@@ -564,7 +605,7 @@ public class CompassActivity extends FragmentActivity
         if (gpsProviderEnabled || networkProviderEnabled) {
             if (networkProviderEnabled) {
                 locationManager.requestLocationUpdates(
-                        LocationManager.NETWORK_PROVIDER, 1000, 30, (LocationListener) staticActivity);
+                        LocationManager.NETWORK_PROVIDER, 1000, 30, (LocationListener) mStaticActivity);
                 if (locationManager != null) {
                     mLocation = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
                     String providerType = "network";
@@ -580,16 +621,10 @@ public class CompassActivity extends FragmentActivity
 
             if (gpsProviderEnabled) {
                 locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,
-                        1000, 1, (LocationListener) staticActivity);
+                        1000, 1, (LocationListener) mStaticActivity);
                 if (locationManager != null) {
-                    if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                        // TODO: Consider calling
-                        //    ActivityCompat#requestPermissions
-                        // here to request the missing permissions, and then overriding
-                        //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                        //                                          int[] grantResults)
-                        // to handle the case where the user grants the permission. See the documentation
-                        // for ActivityCompat#requestPermissions for more details.
+                    if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+                            ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                         return;
                     }
                     mLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
@@ -607,19 +642,19 @@ public class CompassActivity extends FragmentActivity
     }
 
     private void getLocation() {
-        if (!isGooglePlayServicesAvailable(staticActivity)) {
+        if (!isGooglePlayServicesAvailable(mStaticActivity)) {
             return;
         }
         if (!mGpsDecl) {
             return;
         }
-        if (ActivityCompat.checkSelfPermission(staticActivity, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
-                && ActivityCompat.checkSelfPermission(staticActivity, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(staticActivity, new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION},
+        if (ActivityCompat.checkSelfPermission(mStaticActivity, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+                && ActivityCompat.checkSelfPermission(mStaticActivity, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(mStaticActivity, new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION},
                     LOCATION_REQUEST);
         } else {
             mFusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, null);
-            mFusedLocationClient.getLastLocation().addOnSuccessListener(staticActivity, new OnSuccessListener<Location>() {
+            mFusedLocationClient.getLastLocation().addOnSuccessListener(mStaticActivity, new OnSuccessListener<Location>() {
                 @Override
                 public void onSuccess(Location location) {
                     if (location != null) {
@@ -635,10 +670,13 @@ public class CompassActivity extends FragmentActivity
                         } else {
                             mTextDeclinatonOrientation.setText("");
                         }
+                        if (mManDecl) {
+                            mDeclination = mManualDecl;
+                        }
                         mTextDeclinatonDegrees.setText(String.format(Locale.US, "%.1f°", Math.abs(mDeclination)));
                     } else {
-                        if (ActivityCompat.checkSelfPermission(staticActivity, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
-                                ActivityCompat.checkSelfPermission(staticActivity, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                        if (ActivityCompat.checkSelfPermission(mStaticActivity, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+                                ActivityCompat.checkSelfPermission(mStaticActivity, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
                             mFusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, null);
                         }
                     }
@@ -653,8 +691,26 @@ public class CompassActivity extends FragmentActivity
         mScreenRotation = getWindowManager().getDefaultDisplay().getRotation();
     }
 
+    private void setupOnRequestPermissionsResult() {
+        ActivityResultLauncher<String> mPermissionResult = registerForActivityResult(
+                new ActivityResultContracts.RequestPermission(),
+                new ActivityResultCallback<Boolean>() {
+                    @Override
+                    public void onActivityResult(Boolean result) {
+                        if(result) {
+                            Log.e(TAG, "onActivityResult: PERMISSION GRANTED");
+                            mUserPermissionDenied = false;
+                        } else {
+                            Log.e(TAG, "onActivityResult: PERMISSION DENIED");
+                            mUserPermissionDenied = true;
+                        }
+                    }
+                });
+    }
+
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         switch (requestCode) {
             case LOCATION_PERMISSION_REQUEST: {
                 if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
@@ -685,7 +741,7 @@ public class CompassActivity extends FragmentActivity
     }
 
     public void turnGPSOn() {
-        if (!isGooglePlayServicesAvailable(staticActivity)) {
+        if (!isGooglePlayServicesAvailable(mStaticActivity)) {
             isGPSEnabled = false;
             return;
         }
@@ -695,7 +751,7 @@ public class CompassActivity extends FragmentActivity
         } else {
             mSettingsClient
                     .checkLocationSettings(mLocationSettingsRequest)
-                    .addOnSuccessListener(staticActivity, new OnSuccessListener<LocationSettingsResponse>() {
+                    .addOnSuccessListener(mStaticActivity, new OnSuccessListener<LocationSettingsResponse>() {
                         @Override
                         public void onSuccess(LocationSettingsResponse locationSettingsResponse) {
                             Log.i(TAG, "GPS is enabled");
@@ -709,7 +765,7 @@ public class CompassActivity extends FragmentActivity
                             isGPSEnabled = false;
                         }
                     })
-                    .addOnFailureListener(staticActivity, new OnFailureListener() {
+                    .addOnFailureListener(mStaticActivity, new OnFailureListener() {
                         @Override
                         public void onFailure(Exception e) {
                             e.printStackTrace();
@@ -719,7 +775,7 @@ public class CompassActivity extends FragmentActivity
                                     isGPSEnabled = false;
                                     try {
                                         ResolvableApiException rae = (ResolvableApiException) e;
-                                        rae.startResolutionForResult(staticActivity, GPS_REQUEST);
+                                        rae.startResolutionForResult(mStaticActivity, GPS_REQUEST);
                                     } catch (IntentSender.SendIntentException sie) {
                                         Log.i(TAG, "Unable to execute request.");
                                     }
@@ -729,7 +785,7 @@ public class CompassActivity extends FragmentActivity
                                     isGPSEnabled = false;
                                     String errorMsg = "Location settings are invalid, go to Settings to change them.";
                                     Log.e(TAG, errorMsg);
-                                    Toast.makeText(staticActivity, errorMsg, Toast.LENGTH_LONG).show();
+                                    Toast.makeText(mStaticActivity, errorMsg, Toast.LENGTH_LONG).show();
                                     break;
                                 }
                             }
@@ -767,8 +823,8 @@ public class CompassActivity extends FragmentActivity
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         switch (requestCode) {
             case SETTINGS_REQUEST:
-                Intent intent = new Intent(staticActivity, CompassActivity.class);
-                staticActivity.startActivity(intent);
+                Intent intent = new Intent(mStaticActivity, CompassActivity.class);
+                mStaticActivity.startActivity(intent);
                 finish();
                 break;
         }
@@ -808,6 +864,9 @@ public class CompassActivity extends FragmentActivity
             } else {
                 mTextDeclinatonOrientation.setText("");
             }
+            if (mManDecl) {
+                mDeclination = mManualDecl;
+            }
             mTextDeclinatonDegrees.setText(String.format(Locale.US, "%.1f°", Math.abs(mDeclination)));
         }
     }
@@ -825,5 +884,20 @@ public class CompassActivity extends FragmentActivity
     @Override
     public void onProviderDisabled(String provider) {
 
+    }
+
+    private boolean hideSystemBars() {
+        WindowInsetsControllerCompat windowInsetsController =
+                ViewCompat.getWindowInsetsController(mStaticActivity.getWindow().getDecorView());
+        if (windowInsetsController == null) {
+            return false;
+        }
+        // Configure the behavior of the hidden system bars
+        windowInsetsController.setSystemBarsBehavior(
+                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        );
+        // Hide both the status bar and the navigation bar
+        windowInsetsController.hide(WindowInsetsCompat.Type.systemBars());
+        return true;
     }
 }

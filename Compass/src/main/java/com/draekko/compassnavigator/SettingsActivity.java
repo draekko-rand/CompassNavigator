@@ -26,18 +26,19 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.preference.Preference;
+import android.preference.PreferenceFragment;
 import android.preference.PreferenceManager;
-import android.support.v14.preference.PreferenceFragment;
-import android.support.v7.app.ActionBar;
-import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatActivity;
-import android.support.v7.preference.Preference;
 import android.text.InputType;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.MenuItem;
 import android.widget.EditText;
 import android.widget.Toast;
+
+import androidx.appcompat.app.ActionBar;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
 
 public class SettingsActivity  extends AppCompatActivity {
 
@@ -179,11 +180,6 @@ public class SettingsActivity  extends AppCompatActivity {
                     return true;
                 }
             });
-        }
-
-        @Override
-        public void onCreatePreferences(Bundle bundle, String s) {
-            Log.d(TAG, "onCreatePreferences [" + s + "]");
         }
 
         @Override
