@@ -196,6 +196,9 @@ public class CompassActivity extends AppCompatActivity
     private Location mLocation;
     private FragmentManager mFragmentManager;
 
+    private double smoothedAngle = 0.0;
+    private double smootFactor = 20.0;
+
     private static int uiOptions =
             SYSTEM_UI_FLAG_IMMERSIVE_STICKY |
                     SYSTEM_UI_LAYOUT_FLAGS |
@@ -398,6 +401,7 @@ public class CompassActivity extends AppCompatActivity
                         if (revAngle < 0) revAngle += 360;
                         if (revAngle > 360) revAngle -= 360;
                         mTextBezelRevDegrees.setText(((int) revAngle) + "°");
+
                         compassView.setBezelDegrees(lastangle);
                         settings.setBearingDirection((int)lastangle);
                         lasttime = System.currentTimeMillis();
@@ -510,7 +514,7 @@ public class CompassActivity extends AppCompatActivity
     @Override
     public void onSensorChanged(SensorEvent event) {
         String[] compass_direction = new String[]{"N", "NE", "E", "SE", "S", "SW", "W", "NW", "N"};
-        double angle;
+        double angle = 0.0;
 
         if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
             mGravity = event.values;
@@ -561,17 +565,18 @@ public class CompassActivity extends AppCompatActivity
                     angle -= 360;
                 }
                 curRotateBG = 0.0d - angle;
-                mTextDegrees.setText(((int) angle) + "°");
-                int index = (int) ((angle + 22.5d) / 45.0d);
-                if (index < compass_direction.length && index >= 0) {
-                    mTextOrientation.setText(" " + compass_direction[(int) ((angle + 22.5d) / 45.0d)]);
-                }
                 if (compassView == null) {
                     return;
                 }
                 if (!mGpsDecl) {
                     mDeclination = 0;
                 }
+
+                if (Math.abs(smoothedAngle - angle) > 4) {
+                    smoothedAngle = angle;
+                }
+                smoothedAngle += (angle - smoothedAngle) / smootFactor;
+
                 if (hasItem) {
                     if (angle < 0) angle += 360;
                     if (angle > 360) angle -= 360;
@@ -584,9 +589,16 @@ public class CompassActivity extends AppCompatActivity
                         if (angle < 0) angle += 360;
                         if (angle > 360) angle -= 360;
                     }
-                    compassView.setRoseDegrees((float) angle);
+
+                    compassView.setRoseDegrees((float) smoothedAngle);
                 } else {
                     hasItem = true;
+                }
+
+                mTextDegrees.setText(((int) smoothedAngle) + "°");
+                int index = (int) ((smoothedAngle + 22.5d) / 45.0d);
+                if (index < compass_direction.length && index >= 0) {
+                    mTextOrientation.setText(" " + compass_direction[(int) ((smoothedAngle + 22.5d) / 45.0d)]);
                 }
             }
         }
