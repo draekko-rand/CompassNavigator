@@ -62,7 +62,6 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.activity.result.ActivityResult;
 import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -98,7 +97,6 @@ import com.google.android.gms.tasks.OnSuccessListener;
 
 import java.util.ArrayList;
 import java.util.Locale;
-import java.util.Set;
 
 @SuppressLint({"NewApi"})
 public class CompassActivity extends AppCompatActivity
@@ -114,29 +112,29 @@ public class CompassActivity extends AppCompatActivity
             Manifest.permission.ACCESS_FINE_LOCATION
     };
 
-    private static final long UPDATE_INTERVAL = 10000;
-    private static final long FASTEST_INTERVAL = 5000;
     private static final int ALL_LOCATION_PERMISSIONS_RESULT = 1011;
     public static final int LOCATION_REQUEST = 1000;
     public static final int GPS_REQUEST = 1001;
     private static final int SETTINGS_REQUEST = 2000;
 
-    private static int M = 10;
+    private static final double DEGS_TO_MILS = 17.77778;
+
     private static int height;
     private static int width;
-    private static SharedPreferences preferences;
     private static Activity mStaticActivity;
     private static Settings settings;
 
     private boolean mNight = false;
+    private boolean mGreenNight = false;
     private boolean mAltRose = false;
     private boolean mGpsDecl = true;
     private boolean mManDecl = true;
-    private float mManualDecl = 0.0f;
+    private boolean mMilsEnabled = false;
+
+    private double mManualDecl = 0.0;
     private int mBearingDirection = 0;
 
     protected float screenDensity;
-    private Float[] angles;
     private int count = 0;
     private double curRotate = 0.0d;
     private double curRotateBG = 0.0d;
@@ -151,10 +149,11 @@ public class CompassActivity extends AppCompatActivity
     private SensorManager mSensorManager;
     private Sensor mAccelerometer;
     private Sensor mMagnetometer;
-    private CompassView compassView;
+    private CompassView mCompassView;
 
     private LinearLayout mDeclinationLLFrame;
     private ImageButton mSettingsButtons;
+    private ImageButton mResetButtons;
     private TextView mTextDegrees;
     private TextView mTextBezelDegrees;
     private TextView mTextBezelRevDegrees;
@@ -206,10 +205,29 @@ public class CompassActivity extends AppCompatActivity
                     SYSTEM_UI_FLAG_HIDE_NAVIGATION |
                     SYSTEM_UI_FLAG_FULLSCREEN;
 
-    View.OnClickListener onClickListener = new View.OnClickListener() {
+    View.OnClickListener onSettingsClickListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
             SettingsActivity.startSettingsActivityForResult(mStaticActivity, SETTINGS_REQUEST);
+        }
+    };
+
+    View.OnClickListener onResetClickListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            lastangle = 0.0f;
+
+            if (mMilsEnabled) {
+                mTextBezelDegrees.setText("0");
+                mTextBezelRevDegrees.setText("3200");
+            } else {
+                mTextBezelDegrees.setText("0°");
+                mTextBezelRevDegrees.setText("180°");
+            }
+
+            mCompassView.setBezelMils(0);
+            mCompassView.setBezelDegrees(0);
+            mCompassView.invalidate();
         }
     };
 
@@ -228,7 +246,9 @@ public class CompassActivity extends AppCompatActivity
         settings.load(mSharedPreferences);
 
         mAltRose = settings.getEnableAltRose();
+        mMilsEnabled = settings.getEnableMils();
         mNight = settings.getEnableNightMode();
+        mGreenNight = settings.getEnableGreenNightMode();
         mGpsDecl = settings.getEnableGpsDeclination();
         mManDecl = settings.getEnableManualDeclination();
         mBearingDirection = settings.getBearingDirection();
@@ -249,26 +269,17 @@ public class CompassActivity extends AppCompatActivity
         mTextDeclinatonDegrees = (TextView) findViewById(R.id.declinationDegrees);
         mTextDeclinatonOrientation = (TextView) findViewById(R.id.declinationDirection);
         mSettingsButtons = (ImageButton) findViewById(R.id.settings);
+        mResetButtons = (ImageButton) findViewById(R.id.reset);
         mTextDegrees = (TextView) findViewById(R.id.degrees);
         mTextBezelDegrees = (TextView) findViewById(R.id.degreesBezel);
         mTextBezelRevDegrees = (TextView) findViewById(R.id.degreesBezelReverse);
         mTextOrientation = (TextView) findViewById(R.id.direction);
-        mSettingsButtons.setOnClickListener(onClickListener);
+        mSettingsButtons.setOnClickListener(onSettingsClickListener);
+        mResetButtons.setOnClickListener(onResetClickListener);
 
         permissions.add(Manifest.permission.ACCESS_FINE_LOCATION);
         permissions.add(Manifest.permission.ACCESS_COARSE_LOCATION);
         permissionsToRequest = permissionsToRequest(permissions);
-
-        mDeclinationLLFrame.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (settings.getEnableGpsDeclination()) {
-
-                } else {
-
-                }
-            }
-        });
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (permissionsToRequest.size() > 0) {
@@ -324,28 +335,37 @@ public class CompassActivity extends AppCompatActivity
                             mGeomagneticField = new GeomagneticField2020((float)mWayLatitude, (float)mWayLongitude, (float)location.getAltitude(), location.getTime());
                             mDeclination = mGeomagneticField.getDeclination();
                             Log.i(TAG, String.format(Locale.US, "LATLNG [%f, %f] DECL[%f] [C]", mWayLatitude, mWayLongitude, mDeclination));
-                            if (mDeclination < 0) {
-                                mTextDeclinatonOrientation.setText("W");
-                            } else if (mDeclination > 0) {
-                                mTextDeclinatonOrientation.setText("E");
-                            } else {
-                                mTextDeclinatonOrientation.setText("");
-                            }
                             if (settings.getAutoUpdateManualDeclination()) {
-                                settings.setManualDeclinationValue(rounded((float)mDeclination));
-                                mManualDecl = rounded((float)mDeclination);
+                                settings.setManualDeclinationValue((float)rounded(mDeclination));
+                                mManualDecl = rounded(mDeclination);
                             }
                             if (mManDecl) {
                                 mDeclination = mManualDecl;
                             }
-                            mTextDeclinatonDegrees.setText(String.format(Locale.US, "%.1f°", Math.abs(rounded((float)mDeclination))));
+                            if (mMilsEnabled) {
+                                int val = (int)(rounded(mDeclination) * DEGS_TO_MILS);
+                                mTextDeclinatonOrientation.setText("");
+                                if (mDeclination < 0) {
+                                    mTextDeclinatonDegrees.setText("-"+String.valueOf(val));
+                                } else {
+                                    mTextDeclinatonDegrees.setText(String.valueOf(val));
+                                }
+                            } else {
+                                if (mDeclination < 0) {
+                                    mTextDeclinatonOrientation.setText("W");
+                                } else if (mDeclination > 0) {
+                                    mTextDeclinatonOrientation.setText("E");
+                                } else {
+                                    mTextDeclinatonOrientation.setText("");
+                                }
+                                mTextDeclinatonDegrees.setText(String.format(Locale.US, "%.1f°", Math.abs(rounded(mDeclination))));
+                            }
                         }
                     }
                 }
             };
         }
 
-        angles = new Float[M];
         Display display = getWindowManager().getDefaultDisplay();
         Point size = new Point();
         display.getSize(size);
@@ -366,8 +386,8 @@ public class CompassActivity extends AppCompatActivity
         mMagnetometer = mSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
         screenDensity = getResources().getDisplayMetrics().density;
 
-        compassView = findViewById(R.id.compass);
-        compassView.setOnTouchListener(new OnTouchListener() {
+        mCompassView = findViewById(R.id.compass);
+        mCompassView.setOnTouchListener(new OnTouchListener() {
             public boolean onTouch(View v, MotionEvent event) {
                 int H = v.getHeight();
                 int W = v.getWidth();
@@ -380,29 +400,38 @@ public class CompassActivity extends AppCompatActivity
                     return true;
                 } else if (event.getAction() == MotionEvent.ACTION_MOVE) {
                     count++;
-                    float X = x - 225.0f;
-                    float Y = y - 225.0f;
-                    float TX = tx - 225.0f;
-                    float TY = ty - 225.0f;
-                    float ddd = (float) (57.29577951308232d * ((double) ((float) Math.asin((double) (-((float) (((double) ((X * TY) - (Y * TX))) / Math.sqrt((double) (((X * X) + (Y * Y)) * ((TX * TX) + (TY * TY)))))))))));
-                    //float ddd = (float) Math.toDegrees(((double) ((float) Math.asin((double) (-((float) (((double) ((X * TY) - (Y * TX))) / Math.sqrt((double) (((X * X) + (Y * Y)) * ((TX * TX) + (TY * TY)))))))))));
-                    for (int i = 1; i < M; i++) {
-                        angles[i - 1] = angles[i];
-                    }
-                    angles[M - 1] = ddd;
-                    if (((double) Math.abs(ddd)) > 0.1d) {
-                        tx = x;
-                        ty = y;
-                        lastangle -= ddd;
-                        if (lastangle < 0) lastangle += 360;
-                        if (lastangle > 360) lastangle -= 360;
-                        mTextBezelDegrees.setText(((int) lastangle) + "°");
-                        float revAngle = lastangle - 180;
-                        if (revAngle < 0) revAngle += 360;
-                        if (revAngle > 360) revAngle -= 360;
-                        mTextBezelRevDegrees.setText(((int) revAngle) + "°");
+                    double X = x - 225.0f;
+                    double Y = y - 225.0f;
+                    double TX = tx - 225.0f;
+                    double TY = ty - 225.0f;
+                    double ddd = (float) (57.29577951308232 * ((Math.asin((-(((((X * TY) - (Y * TX))) / Math.sqrt((((X * X) + (Y * Y)) * ((TX * TX) + (TY * TY)))))))))));
+                    if ((Math.abs(ddd)) > 0.1) {
+                        if (mMilsEnabled) {
+                            tx = x;
+                            ty = y;
+                            lastangle -= ddd;
+                            if (lastangle < 0) lastangle += 360;
+                            if (lastangle > 360) lastangle -= 360;
+                            float revAngle = lastangle - 180;
+                            if (revAngle < 0) revAngle += 360;
+                            if (revAngle > 360) revAngle -= 360;
+                            mTextBezelDegrees.setText(String.valueOf((int) (lastangle * DEGS_TO_MILS)));
+                            mTextBezelRevDegrees.setText(String.valueOf((int) (revAngle * DEGS_TO_MILS)));
+                            mCompassView.setBezelMils((float)((lastangle / 360.0d) * 6400.0d));
+                        } else {
+                            tx = x;
+                            ty = y;
+                            lastangle -= ddd;
+                            if (lastangle < 0) lastangle += 360;
+                            if (lastangle > 360) lastangle -= 360;
+                            float revAngle = lastangle - 180;
+                            if (revAngle < 0) revAngle += 360;
+                            if (revAngle > 360) revAngle -= 360;
+                            mTextBezelDegrees.setText(((int) lastangle) + "°");
+                            mTextBezelRevDegrees.setText(((int) revAngle) + "°");
+                            mCompassView.setBezelDegrees(lastangle);
+                        }
 
-                        compassView.setBezelDegrees(lastangle);
                         settings.setBearingDirection((int)lastangle);
                         lasttime = System.currentTimeMillis();
                     }
@@ -413,49 +442,82 @@ public class CompassActivity extends AppCompatActivity
             }
         });
 
-        mTextBezelDegrees.setText("0°");
-        mTextBezelRevDegrees.setText("180°");
+        mCompassView.setUseMils(mMilsEnabled);
+        if (mMilsEnabled) {
+            mTextBezelDegrees.setText("0");
+            mTextBezelRevDegrees.setText("3200");
+        } else {
+            mTextBezelDegrees.setText("0°");
+            mTextBezelRevDegrees.setText("180°");
+        }
 
         getLocation();
 
-        compassView.setNight(mNight);
+        mCompassView.setNight(mNight);
+        mCompassView.setGreenNight(mGreenNight);
         if (mNight) {
-            final int color = getColor(R.color.nightred);
+            int color = getColor(R.color.nightred);
+            if (mGreenNight) {
+                color = getColor(R.color.nightgreen);
+            }
+            mTextDegrees.setTextColor(color);
             mTextOrientation.setTextColor(color);
             mTextDeclinatonOrientation.setTextColor(color);
+            mTextBezelDegrees.setTextColor(color);
+            mTextBezelRevDegrees.setTextColor(color);
+            mTextDeclinatonOrientation.setTextColor(color);
+            mTextDeclinatonDegrees.setTextColor(color);
             mSettingsButtons.setImageTintList(new ColorStateList(new int[][]{{}}, new int[]{ color }));
+            mResetButtons.setImageTintList(new ColorStateList(new int[][]{{}}, new int[]{ color }));
         } else {
             final int tcolor = getColor(R.color.offwhite);
             mTextOrientation.setTextColor(tcolor);
             mTextDeclinatonOrientation.setTextColor(tcolor);
             final int bcolor = getColor(R.color.daytintbtn);
             mSettingsButtons.setImageTintList(new ColorStateList(new int[][]{{}}, new int[]{ bcolor }));
+            mResetButtons.setImageTintList(new ColorStateList(new int[][]{{}}, new int[]{ bcolor }));
         }
         if (mAltRose) {
-            compassView.setRose(2);
+            mCompassView.setRose(2);
         } else {
-            compassView.setRose(1);
+            mCompassView.setRose(1);
         }
         lastangle = mBearingDirection;
-        compassView.setBezelDegrees(mBearingDirection);
+        mCompassView.setBezelDegrees(mBearingDirection);
+        mCompassView.setBezelMils((mBearingDirection / 360) * 6400.0f);
         int bearing = mBearingDirection - 180;
         if (bearing < 0) bearing += 360;
         if (bearing > 360) bearing -= 360;
-        mTextBezelDegrees.setText(mBearingDirection + "°");
-        mTextBezelRevDegrees.setText(bearing + "°");
+        if (mMilsEnabled) {
+            mTextBezelDegrees.setText(String.valueOf((int)(mBearingDirection * DEGS_TO_MILS)));
+            mTextBezelRevDegrees.setText(String.valueOf((int)(bearing * DEGS_TO_MILS)));
+        } else {
+            mTextBezelDegrees.setText(mBearingDirection + "°");
+            mTextBezelRevDegrees.setText(bearing + "°");
+        }
 
         if (mGpsDecl || mManDecl) {
             if (mManDecl) {
-                String orientation = " W";
-                if (mManualDecl < 0) {
-                    orientation = " W";
-                } else if (mManualDecl > 0) {
-                    orientation = " E";
+                if (mMilsEnabled) {
+                    mTextDeclinatonDegrees.setText("");
+                    int val = (int)(rounded(mManualDecl * DEGS_TO_MILS));
+                    if (mDeclination < 0) {
+                        mTextDeclinatonDegrees.setText("-"+String.valueOf(val));
+                    } else {
+                        mTextDeclinatonDegrees.setText(String.valueOf(val));
+                    }
                 } else {
-                    orientation = "";
+                    String orientation = " W";
+                    if (mManualDecl < 0) {
+                        orientation = " W";
+                    } else if (mManualDecl > 0) {
+                        orientation = " E";
+                    } else {
+                        orientation = "";
+                    }
+                    mTextDeclinatonDegrees.setText(String.format(Locale.US, "%.1f°", Math.abs(rounded(mManualDecl))));
+                    mTextDeclinatonOrientation.setText(String.valueOf(orientation));
                 }
-                mTextDeclinatonDegrees.setText(String.format(Locale.US, "%.1f°", Math.abs(rounded((float)mManualDecl))));
-                mTextDeclinatonOrientation.setText(String.valueOf(orientation));
             }
             mDeclinationLLFrame.setVisibility(View.VISIBLE);
         } else {
@@ -483,9 +545,8 @@ public class CompassActivity extends AppCompatActivity
     @Override
     protected void onResume() {
         super.onResume();
-        //mSensorManager.registerListener(this, mOrientation, SensorManager.SENSOR_DELAY_FASTEST);
-        hasMagnetic = mSensorManager.registerListener(this, mMagnetometer, SensorManager.SENSOR_DELAY_NORMAL);
-        hasAccel = mSensorManager.registerListener(this, mAccelerometer, SensorManager.SENSOR_DELAY_NORMAL);
+        hasMagnetic = mSensorManager.registerListener(this, mMagnetometer, SensorManager.SENSOR_DELAY_FASTEST);
+        hasAccel = mSensorManager.registerListener(this, mAccelerometer, SensorManager.SENSOR_DELAY_FASTEST);
         if (!(hasMagneticCheck || hasMagnetic)) {
             if (mFragmentManager.findFragmentByTag("noSensorError") == null) {
                 NoSensorErrorDialogFragment.newInstance(null).show(mFragmentManager, "noSensorError");
@@ -565,17 +626,24 @@ public class CompassActivity extends AppCompatActivity
                     angle -= 360;
                 }
                 curRotateBG = 0.0d - angle;
-                if (compassView == null) {
+                if (mCompassView == null) {
                     return;
                 }
                 if (!mGpsDecl) {
                     mDeclination = 0;
                 }
 
-                if (Math.abs(smoothedAngle - angle) > 4) {
-                    smoothedAngle = angle;
+                if (mMilsEnabled) {
+                    if (Math.abs(smoothedAngle - angle) * DEGS_TO_MILS > 70.0) {
+                        smoothedAngle = angle;
+                    }
+                    smoothedAngle += (angle - smoothedAngle) / (smootFactor * 10.0);
+                } else {
+                    if (Math.abs(smoothedAngle - angle) > 4) {
+                        smoothedAngle = angle;
+                    }
+                    smoothedAngle += (angle - smoothedAngle) / smootFactor;
                 }
-                smoothedAngle += (angle - smoothedAngle) / smootFactor;
 
                 if (hasItem) {
                     if (angle < 0) angle += 360;
@@ -589,16 +657,28 @@ public class CompassActivity extends AppCompatActivity
                         if (angle < 0) angle += 360;
                         if (angle > 360) angle -= 360;
                     }
-
-                    compassView.setRoseDegrees((float) smoothedAngle);
+                    if (mMilsEnabled) {
+                        mCompassView.setRoseMils((float)((smoothedAngle / 360.0) * 6400.0));
+                    } else {
+                        mCompassView.setRoseDegrees((float) smoothedAngle);
+                    }
                 } else {
                     hasItem = true;
                 }
 
-                mTextDegrees.setText(((int) smoothedAngle) + "°");
-                int index = (int) ((smoothedAngle + 22.5d) / 45.0d);
-                if (index < compass_direction.length && index >= 0) {
-                    mTextOrientation.setText(" " + compass_direction[(int) ((smoothedAngle + 22.5d) / 45.0d)]);
+                if (mMilsEnabled) {
+                    int val = (int)(smoothedAngle * DEGS_TO_MILS);
+                    mTextDegrees.setText(String.valueOf(val));
+                    int index = (int) ((smoothedAngle + 22.5d) / 45.0d);
+                    if (index < compass_direction.length && index >= 0) {
+                        mTextOrientation.setText("");
+                    }
+                } else {
+                    mTextDegrees.setText(((int) smoothedAngle) + "°");
+                    int index = (int) ((smoothedAngle + 22.5d) / 45.0d);
+                    if (index < compass_direction.length && index >= 0) {
+                        mTextOrientation.setText(" " + compass_direction[(int) ((smoothedAngle + 22.5d) / 45.0d)]);
+                    }
                 }
             }
         }
@@ -679,21 +759,32 @@ public class CompassActivity extends AppCompatActivity
                         mGeomagneticField = new GeomagneticField2020((float)mWayLatitude, (float)mWayLongitude, (float)location.getAltitude(), location.getTime());
                         mDeclination = mGeomagneticField.getDeclination();
                         Log.i(TAG, String.format(Locale.US, "LATLNG [%f, %f] DECL[%f]", mWayLatitude, mWayLongitude, mDeclination));
-                        if (mDeclination < 0) {
-                            mTextDeclinatonOrientation.setText(" W");
-                        } else if (mDeclination > 0) {
-                            mTextDeclinatonOrientation.setText(" E");
-                        } else {
-                            mTextDeclinatonOrientation.setText("");
-                        }
                         if (settings.getAutoUpdateManualDeclination()) {
-                            settings.setManualDeclinationValue(rounded((float)mDeclination));
-                            mManualDecl = rounded((float)mDeclination);
+                            settings.setManualDeclinationValue((float)rounded(mDeclination));
+                            mManualDecl = rounded(mDeclination);
                         }
                         if (mManDecl) {
                             mDeclination = mManualDecl;
                         }
-                        mTextDeclinatonDegrees.setText(String.format(Locale.US, "%.1f°", Math.abs(rounded((float)mDeclination))));
+
+                        if (mMilsEnabled) {
+                            int val = (int)(rounded(mDeclination) * DEGS_TO_MILS);
+                            mTextDeclinatonOrientation.setText("");
+                            if (mDeclination < 0) {
+                                mTextDeclinatonDegrees.setText("-"+String.valueOf(val));
+                            } else {
+                                mTextDeclinatonDegrees.setText(String.valueOf(val));
+                            }
+                        } else {
+                            if (mDeclination < 0) {
+                                mTextDeclinatonOrientation.setText(" W");
+                            } else if (mDeclination > 0) {
+                                mTextDeclinatonOrientation.setText(" E");
+                            } else {
+                                mTextDeclinatonOrientation.setText("");
+                            }
+                            mTextDeclinatonDegrees.setText(String.format(Locale.US, "%.1f°", Math.abs(rounded(mDeclination))));
+                        }
                     } else {
                         if (ActivityCompat.checkSelfPermission(mStaticActivity, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
                                 ActivityCompat.checkSelfPermission(mStaticActivity, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
@@ -858,9 +949,6 @@ public class CompassActivity extends AppCompatActivity
         GoogleApiAvailability googleApiAvailability = GoogleApiAvailability.getInstance();
         int status = googleApiAvailability.isGooglePlayServicesAvailable(activity);
         if(status != ConnectionResult.SUCCESS) {
-            if(googleApiAvailability.isUserResolvableError(status)) {
-                //googleApiAvailability.getErrorDialog(activity, status, 2404).show();
-            }
             return false;
         }
         return true;
@@ -880,21 +968,31 @@ public class CompassActivity extends AppCompatActivity
             mGeomagneticField = new GeomagneticField2020((float)mWayLatitude, (float)mWayLongitude, (float)location.getAltitude(), location.getTime());
             mDeclination = mGeomagneticField.getDeclination();
             Log.i(TAG, String.format(Locale.US, "LATLNG [%f, %f] DECL[%f]", mWayLatitude, mWayLongitude, mDeclination));
-            if (mDeclination < 0) {
-                mTextDeclinatonOrientation.setText(" W");
-            } else if (mDeclination > 0) {
-                mTextDeclinatonOrientation.setText(" E");
-            } else {
-                mTextDeclinatonOrientation.setText("");
-            }
             if (settings.getAutoUpdateManualDeclination()) {
-                settings.setManualDeclinationValue(rounded((float)mDeclination));
+                settings.setManualDeclinationValue((float)rounded(mDeclination));
                 mManualDecl = rounded((float)mDeclination);
             }
             if (mManDecl) {
                 mDeclination = mManualDecl;
             }
-            mTextDeclinatonDegrees.setText(String.format(Locale.US, "%.1f°", Math.abs(rounded((float)mDeclination))));
+            if (mMilsEnabled) {
+                int val = (int)(rounded(mDeclination) * DEGS_TO_MILS);
+                mTextDeclinatonOrientation.setText("");
+                if (mDeclination < 0) {
+                    mTextDeclinatonDegrees.setText("-"+String.valueOf(val));
+                } else {
+                    mTextDeclinatonDegrees.setText(String.valueOf(val));
+                }
+            } else {
+                if (mDeclination < 0) {
+                    mTextDeclinatonOrientation.setText(" W");
+                } else if (mDeclination > 0) {
+                    mTextDeclinatonOrientation.setText(" E");
+                } else {
+                    mTextDeclinatonOrientation.setText("");
+                }
+                mTextDeclinatonDegrees.setText(String.format(Locale.US, "%.1f°", Math.abs(rounded(mDeclination))));
+            }
         }
     }
 
@@ -927,11 +1025,18 @@ public class CompassActivity extends AppCompatActivity
         windowInsetsController.hide(WindowInsetsCompat.Type.systemBars());
         return true;
     }
-    
+
     private float rounded(float value) {
         float ret = 0.0f;
         int r1 = (int)(value * 10.0f);
         ret = (float)r1 / 10.0f;
+        return ret;
+    }
+
+    private double rounded(double value) {
+        double ret = 0.0f;
+        int r1 = (int)(value * 10.0f);
+        ret = (double)r1 / 10.0f;
         return ret;
     }
 }

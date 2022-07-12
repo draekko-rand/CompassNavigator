@@ -25,16 +25,20 @@ import android.content.SharedPreferences;
 public class Settings {
 
     public static final String ENABLE_NIGHTMODE_KEY = "enable_night_mode";
+    public static final String ENABLE_GREEN_NIGHTMODE_KEY = "enable_green_night_mode";
     public static final String ENABLE_ALTROSE_KEY = "enable_alternate_rose";
+    public static final String ENABLE_MILS_KEY = "enable_mils";
     public static final String ENABLE_GPSDECL_KEY = "enable_gps_declination";
     public static final String BEARING_DIRECTION_KEY = "enable_bearing_direction";
     public static final String SHOW_CALIBRAION_KEY = "show_calibration_dialog";
     public static final String ENABLE_MANDECL_KEY = "enable_manual_declination";
     public static final String MANDECL_VALUE_KEY = "manual_declination_value";
     public static final String AUTOUPDECL_VALUE_KEY = "auto_update_declination_value";
-    
+
     private static boolean enableNightMode;
+    private static boolean enableGreenNightMode;
     private static boolean enableAltRose;
+    private static boolean enableMils;
     private static boolean enableGpsDeclination;
     private static boolean enableManualDeclination;
     private static int bearignDirection;
@@ -44,7 +48,9 @@ public class Settings {
 
     public void load(SharedPreferences prefs) {
         enableNightMode = prefs.getBoolean(ENABLE_NIGHTMODE_KEY, false);
+        enableGreenNightMode = prefs.getBoolean(ENABLE_GREEN_NIGHTMODE_KEY, false);
         enableAltRose = prefs.getBoolean(ENABLE_ALTROSE_KEY, false);
+        enableMils = prefs.getBoolean(ENABLE_MILS_KEY, false);
         enableGpsDeclination = prefs.getBoolean(ENABLE_GPSDECL_KEY, true);
         enableManualDeclination = prefs.getBoolean(ENABLE_MANDECL_KEY, false);
         showCalibration = prefs.getBoolean(SHOW_CALIBRAION_KEY, true);
@@ -67,7 +73,9 @@ public class Settings {
 
     public void save(SharedPreferences.Editor editor) {
         editor.putBoolean(ENABLE_NIGHTMODE_KEY, enableNightMode);
+        editor.putBoolean(ENABLE_GREEN_NIGHTMODE_KEY, enableGreenNightMode);
         editor.putBoolean(ENABLE_ALTROSE_KEY, enableAltRose);
+        editor.putBoolean(ENABLE_MILS_KEY, enableMils);
         editor.putBoolean(ENABLE_GPSDECL_KEY, enableGpsDeclination);
         editor.putBoolean(ENABLE_MANDECL_KEY, enableManualDeclination);
         editor.putBoolean(SHOW_CALIBRAION_KEY, showCalibration);
@@ -92,12 +100,28 @@ public class Settings {
         enableAltRose = value;
     }
 
+    public static boolean getEnableMils() {
+        return enableMils;
+    }
+
+    public static void setEnableMils(boolean value) {
+        enableMils = value;
+    }
+
     public static boolean getEnableNightMode() {
         return enableNightMode;
     }
 
     public static void setEnableNightMode(boolean value) {
         enableNightMode = value;
+    }
+
+    public static boolean getEnableGreenNightMode() {
+        return enableGreenNightMode;
+    }
+
+    public static void setEnableGreenNightMode(boolean value) {
+        enableGreenNightMode = value;
     }
 
     public static boolean getEnableGpsDeclination() {

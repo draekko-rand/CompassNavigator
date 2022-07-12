@@ -7,8 +7,8 @@ android {
         applicationId "com.draekko.compassnavigator"
         minSdkVersion 23
         targetSdkVersion 30
-        versionCode 2022002
-        versionName "2022.2"
+        versionCode 2022004
+        versionName "2022.4"
     }
 
 

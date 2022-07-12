@@ -8,8 +8,18 @@
         android:defaultValue="false"/>
 
     <SwitchPreference
+        android:key="enable_green_night_mode"
+        android:title="Enable Green Night Mode (Off = Red)"
+        android:defaultValue="false"/>
+
+    <SwitchPreference
         android:key="enable_alternate_rose"
         android:title="Use alternate compass rose"
+        android:defaultValue="false"/>
+
+    <SwitchPreference
+        android:key="enable_mils"
+        android:title="Use mils compass (Off = degrees)"
         android:defaultValue="false"/>
 
     <SwitchPreference

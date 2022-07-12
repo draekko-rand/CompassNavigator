@@ -13,7 +13,8 @@
     <color name="green">#00F</color>
     <color name="transparent">#0000</color>
     <color name="textcolor">#DFFF</color>
-    <color name="nightred">#ffe00000</color>
+    <color name="nightred">#FE00</color>
+    <color name="nightgreen">#F0E0</color>
     <color name="offwhite">#dfffffff</color>
     <color name="daytintbtn">#5FFFFFFF</color>
     <color name="bg">#3F221212</color>
