@@ -155,6 +155,10 @@ public class CompassActivity extends AppCompatActivity
     private ImageButton mSettingsButtons;
     private ImageButton mResetButtons;
     private TextView mTextDegrees;
+    private TextView mMagneticReliabbity;
+    private TextView mMagneticReliabbityStatus;
+    private View mMagneticReliabbityDivider;
+
     private TextView mTextBezelDegrees;
     private TextView mTextBezelRevDegrees;
     private TextView mTextOrientation;
@@ -166,6 +170,7 @@ public class CompassActivity extends AppCompatActivity
     private boolean mUserPermissionDenied = false;
     private int mScreenRotation;
     private Typeface typeface;
+    private Typeface typefaceNoto;
 
     private ArrayList<String> permissions = new ArrayList<>();
     private ArrayList<String> permissionsToRequest;
@@ -271,6 +276,9 @@ public class CompassActivity extends AppCompatActivity
         mSettingsButtons = (ImageButton) findViewById(R.id.settings);
         mResetButtons = (ImageButton) findViewById(R.id.reset);
         mTextDegrees = (TextView) findViewById(R.id.degrees);
+        mMagneticReliabbity = (TextView) findViewById(R.id.magneticReliability);
+        mMagneticReliabbityStatus = (TextView) findViewById(R.id.magneticReliabilityStatus);
+        mMagneticReliabbityDivider = (View) findViewById(R.id.magneticReliabilityDivider);
         mTextBezelDegrees = (TextView) findViewById(R.id.degreesBezel);
         mTextBezelRevDegrees = (TextView) findViewById(R.id.degreesBezelReverse);
         mTextOrientation = (TextView) findViewById(R.id.direction);
@@ -373,6 +381,7 @@ public class CompassActivity extends AppCompatActivity
         height = size.y;
 
         typeface = Typeface.createFromAsset(getAssets(), "fonts/lcd.ttf");
+        typefaceNoto = Typeface.createFromAsset(getAssets(), "fonts/notosans.ttf");
 
         mTextDeclinatonDegrees.setTypeface(typeface);
         mTextDeclinatonOrientation.setTypeface(typeface);
@@ -380,6 +389,9 @@ public class CompassActivity extends AppCompatActivity
         mTextDegrees.setTypeface(typeface);
         mTextBezelDegrees.setTypeface(typeface);
         mTextBezelRevDegrees.setTypeface(typeface);
+
+        mMagneticReliabbity.setTypeface(typefaceNoto);
+        mMagneticReliabbityStatus.setTypeface(typefaceNoto);
 
         mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
         mAccelerometer = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
@@ -455,11 +467,17 @@ public class CompassActivity extends AppCompatActivity
 
         mCompassView.setNight(mNight);
         mCompassView.setGreenNight(mGreenNight);
+
         if (mNight) {
             int color = getColor(R.color.nightred);
             if (mGreenNight) {
                 color = getColor(R.color.nightgreen);
             }
+
+            mMagneticReliabbity.setTextColor(color);
+            mMagneticReliabbityStatus.setTextColor(color);
+            mMagneticReliabbityDivider.setBackgroundColor(color);
+
             mTextDegrees.setTextColor(color);
             mTextOrientation.setTextColor(color);
             mTextDeclinatonOrientation.setTextColor(color);
@@ -476,12 +494,26 @@ public class CompassActivity extends AppCompatActivity
             final int bcolor = getColor(R.color.daytintbtn);
             mSettingsButtons.setImageTintList(new ColorStateList(new int[][]{{}}, new int[]{ bcolor }));
             mResetButtons.setImageTintList(new ColorStateList(new int[][]{{}}, new int[]{ bcolor }));
+
+
+            final int color = getColor(R.color.nightred);
+            mMagneticReliabbity.setTextColor(color);
+            mMagneticReliabbityStatus.setTextColor(color);
+            mMagneticReliabbityDivider.setBackgroundColor(color);
+            mMagneticReliabbityDivider.setAlpha(0.5f);
+
         }
+
+        mMagneticReliabbity.setAlpha(0.35f);
+        mMagneticReliabbityStatus.setAlpha(0.35f);
+        mMagneticReliabbityDivider.setAlpha(0.35f);
+
         if (mAltRose) {
             mCompassView.setRose(2);
         } else {
             mCompassView.setRose(1);
         }
+
         lastangle = mBearingDirection;
         mCompassView.setBezelDegrees(mBearingDirection);
         mCompassView.setBezelMils((mBearingDirection / 360) * 6400.0f);
@@ -562,7 +594,29 @@ public class CompassActivity extends AppCompatActivity
     }
 
     @Override
-    public void onAccuracyChanged(Sensor sensor, int arg1) {
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+        if (sensor != null && sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD) {
+            switch (accuracy) {
+                default:
+                case SensorManager.SENSOR_STATUS_UNRELIABLE:
+                    Log.d(TAG, "Unreliable Magnetic Sensor");
+                    mMagneticReliabbityStatus.setText("Unreliable (Calibrate)");
+                    break;
+                case SensorManager.SENSOR_STATUS_ACCURACY_LOW:
+                    Log.d(TAG, "Low Accuracy Magnetic Sensor");
+                    mMagneticReliabbityStatus.setText("Low Accuracy");
+                    break;
+                case SensorManager.SENSOR_STATUS_ACCURACY_MEDIUM:
+                    Log.d(TAG, "Medium Accuracy Magnetic Sensor");
+                    mMagneticReliabbityStatus.setText("");
+                    mMagneticReliabbityStatus.setText("Medium Accuracy");
+                    break;
+                case SensorManager.SENSOR_STATUS_ACCURACY_HIGH:
+                    Log.d(TAG, "High Accuracy Magnetic Sensor");
+                    mMagneticReliabbityStatus.setText("High Accuracy");
+                    break;
+            }
+        }
     }
 
     @Override
