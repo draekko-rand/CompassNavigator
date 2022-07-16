@@ -26,6 +26,8 @@ Donate:
 * By sending Bitcoin donations to bc1qeydaauzjpgy3k4mxt47fq4600x0uk9aw3l57am (single/recurring donations)
 * By purchasing the app on the Google play store at [https://play.google.com/store/apps/details?id=com.draekko.compassnavigator](https://play.google.com/store/apps/details?id=com.draekko.compassnavigator) (single donation)
 
+<img src="https://raw.githubusercontent.com/draekko-rand/CompassNavigator/master/images/bitcoin.png" data-canonical-src="https://raw.githubusercontent.com/draekko-rand/CompassNavigator/master/images/bitcoin.png" />
+
 ---
 
 Screenshots:
