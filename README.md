@@ -21,22 +21,29 @@ Features:
 
 ---
 
+Donations:
+
+* Send Bitcoin donations to bc1qeydaauzjpgy3k4mxt47fq4600x0uk9aw3l57am
+
+---
+
 Screenshots:
 
-<img src="https://raw.githubusercontent.com/draekko-rand/CompassNavigator/master/images/screenshot1.png" data-canonical-src="https://raw.githubusercontent.com/draekko-rand/CompassNavigator/master/images/screenshot1.png" width="240" />
+<p float="left">
+<img src="https://raw.githubusercontent.com/draekko-rand/CompassNavigator/master/images/screenshot1.png" data-canonical-src="https://raw.githubusercontent.com/draekko-rand/CompassNavigator/master/images/screenshot1.png" width="20%" />
    
    
 
-<img src="https://raw.githubusercontent.com/draekko-rand/CompassNavigator/master/images/screenshot2.png" data-canonical-src="https://raw.githubusercontent.com/draekko-rand/CompassNavigator/master/images/screenshot2.png" width="240" />   
+<img src="https://raw.githubusercontent.com/draekko-rand/CompassNavigator/master/images/screenshot2.png" data-canonical-src="https://raw.githubusercontent.com/draekko-rand/CompassNavigator/master/images/screenshot2.png" width="20%" />   
    
    
 
-<img src="https://raw.githubusercontent.com/draekko-rand/CompassNavigator/master/images/screenshot3.png" data-canonical-src="https://raw.githubusercontent.com/draekko-rand/CompassNavigator/master/images/screenshot3.png" width="240" />
+<img src="https://raw.githubusercontent.com/draekko-rand/CompassNavigator/master/images/screenshot3.png" data-canonical-src="https://raw.githubusercontent.com/draekko-rand/CompassNavigator/master/images/screenshot3.png" width="20%" />
    
    
 
-<img src="https://raw.githubusercontent.com/draekko-rand/CompassNavigator/master/images/screenshot4.png" data-canonical-src="https://raw.githubusercontent.com/draekko-rand/CompassNavigator/master/images/screenshot4.png" width="240" />
+<img src="https://raw.githubusercontent.com/draekko-rand/CompassNavigator/master/images/screenshot4.png" data-canonical-src="https://raw.githubusercontent.com/draekko-rand/CompassNavigator/master/images/screenshot4.png" width="20%" />
    
    
-
+</p>
 
