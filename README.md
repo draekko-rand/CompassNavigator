@@ -14,10 +14,12 @@ Features:
 
 * Auto declination adjustments using GPS
 * Manual declination adjustments
-* Night mode compass
-* Two compass roses available
+* Degree's and NATO mils modes
+* Night mode compass (red and green night modes)
+* Four compass roses available (two degrees, two NATO mils)
 * Displays the current bearing as well as the reverse bearing
 * Displays the current auto calculated declination or manual declination
+* Bezel bearing reset button
 
 ---
 
