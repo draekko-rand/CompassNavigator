@@ -33,21 +33,21 @@ Donate:
 Screenshots:
 
 <p float="left">
-<img src="https://raw.githubusercontent.com/draekko-rand/CompassNavigator/master/images/screenshot1.png" data-canonical-src="https://raw.githubusercontent.com/draekko-rand/CompassNavigator/master/images/screenshot1.png" width="20%" />
+<img src="https://raw.githubusercontent.com/draekko-rand/CompassNavigator/master/images/screenshot1.png" data-canonical-src="https://raw.githubusercontent.com/draekko-rand/CompassNavigator/master/images/screenshot1.png" height="320px" />
    
    
 
-<img src="https://raw.githubusercontent.com/draekko-rand/CompassNavigator/master/images/screenshot2.png" data-canonical-src="https://raw.githubusercontent.com/draekko-rand/CompassNavigator/master/images/screenshot2.png" width="20%" />   
+<img src="https://raw.githubusercontent.com/draekko-rand/CompassNavigator/master/images/screenshot2.png" data-canonical-src="https://raw.githubusercontent.com/draekko-rand/CompassNavigator/master/images/screenshot2.png" height="320px" />   
    
    
 
 </p>
 <p float="left">
-<img src="https://raw.githubusercontent.com/draekko-rand/CompassNavigator/master/images/screenshot3.png" data-canonical-src="https://raw.githubusercontent.com/draekko-rand/CompassNavigator/master/images/screenshot3.png" width="20%" />
+<img src="https://raw.githubusercontent.com/draekko-rand/CompassNavigator/master/images/screenshot3.png" data-canonical-src="https://raw.githubusercontent.com/draekko-rand/CompassNavigator/master/images/screenshot3.png" height="320px" />
    
    
 
-<img src="https://raw.githubusercontent.com/draekko-rand/CompassNavigator/master/images/screenshot4.png" data-canonical-src="https://raw.githubusercontent.com/draekko-rand/CompassNavigator/master/images/screenshot4.png" width="20%" />
+<img src="https://raw.githubusercontent.com/draekko-rand/CompassNavigator/master/images/screenshot4.png" data-canonical-src="https://raw.githubusercontent.com/draekko-rand/CompassNavigator/master/images/screenshot4.png" height="320px" />
    
    
 </p>
