@@ -6,8 +6,6 @@ Android based app with auto declination adjustments using GPS location.
 
 Declination information calculated using the latest 2020 WMM data available from [https://www.ngdc.noaa.gov/geomag/WMM/DoDWMM.shtml](https://www.ngdc.noaa.gov/geomag/WMM/DoDWMM.shtml). 
 
-For donations a precompiled version is available for a small fee on the Google Play store at [https://play.google.com/store/apps/details?id=com.draekko.compassnavigator](https://play.google.com/store/apps/details?id=com.draekko.compassnavigator).
-
 ---
 
 Features:
@@ -25,7 +23,8 @@ Features:
 
 Donations:
 
-* Send Bitcoin donations to bc1qeydaauzjpgy3k4mxt47fq4600x0uk9aw3l57am
+* By sending Bitcoin donations to bc1qeydaauzjpgy3k4mxt47fq4600x0uk9aw3l57am (single/recurring donations)
+* By purchasing the app on the Google play store at [https://play.google.com/store/apps/details?id=com.draekko.compassnavigator](https://play.google.com/store/apps/details?id=com.draekko.compassnavigator) (single donation)
 
 ---
 
