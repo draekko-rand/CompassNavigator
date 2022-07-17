@@ -577,8 +577,8 @@ public class CompassActivity extends AppCompatActivity
     @Override
     protected void onResume() {
         super.onResume();
-        hasMagnetic = mSensorManager.registerListener(this, mMagnetometer, SensorManager.SENSOR_DELAY_FASTEST);
-        hasAccel = mSensorManager.registerListener(this, mAccelerometer, SensorManager.SENSOR_DELAY_FASTEST);
+        hasMagnetic = mSensorManager.registerListener(this, mMagnetometer, SensorManager.SENSOR_DELAY_NORMAL);
+        hasAccel = mSensorManager.registerListener(this, mAccelerometer, SensorManager.SENSOR_DELAY_NORMAL);
         if (!(hasMagneticCheck || hasMagnetic)) {
             if (mFragmentManager.findFragmentByTag("noSensorError") == null) {
                 NoSensorErrorDialogFragment.newInstance(null).show(mFragmentManager, "noSensorError");
